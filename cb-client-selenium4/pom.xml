@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.cloudbeat</groupId>
+        <artifactId>cb-client-java</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <name>CloudBeat Client for Selenium 4</name>
+    <artifactId>cb-client-selenium4</artifactId>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <!-- Selenium and Appium versions -->
+        <selenium.version>4.4.0</selenium.version>
+        <appium.version>8.1.1</appium.version>
+    </properties>
+
+    <dependencies>
+        <!-- CloudBeat -->
+        <dependency>
+            <groupId>io.cloudbeat</groupId>
+            <artifactId>cb-client-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- Selenium 4 -->
+        <dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-support</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-api</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-remote-driver</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-chrome-driver</artifactId>
+			<version>${selenium.version}</version>
+		</dependency>
+        <!-- Appium -->
+        <dependency>
+            <groupId>io.appium</groupId>
+            <artifactId>java-client</artifactId>
+            <version>${appium.version}</version>
+        </dependency>        
+    </dependencies>
+</project>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.cloudbeat</groupId>
+        <artifactId>cb-client-java</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <name>CloudBeat Client for Cucumber v1</name>
+    <artifactId>cb-client-cucumber1</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <cucumber.version>1.2.5</cucumber.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- CloudBeat -->
+        <dependency>
+            <groupId>io.cloudbeat</groupId>
+            <artifactId>cb-client-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- Cucumber -->
+		<dependency>
+            <groupId>info.cukes</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+        </dependency>
+		<dependency>
+            <groupId>info.cukes</groupId>
+            <artifactId>cucumber-core</artifactId>
+            <version>${cucumber.version}</version>
+        </dependency>
+    </dependencies>
+</project>
