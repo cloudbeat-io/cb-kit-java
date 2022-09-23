@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>io.cloudbeat</groupId>
-        <artifactId>cb-client-java</artifactId>
+        <artifactId>cb-kit-java</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <name>CloudBeat Client for Cucumber v1</name>
-    <artifactId>cb-client-cucumber1</artifactId>
+    <name>CloudBeat Kit for Cucumber v1</name>
+    <artifactId>cb-kit-cucumber1</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -23,7 +23,7 @@
         <!-- CloudBeat -->
         <dependency>
             <groupId>io.cloudbeat</groupId>
-            <artifactId>cb-client-common</artifactId>
+            <artifactId>cb-kit-common</artifactId>
             <version>${revision}</version>
         </dependency>
         <!-- Cucumber -->

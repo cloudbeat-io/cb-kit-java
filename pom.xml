@@ -8,29 +8,29 @@
     </properties>
 
     <groupId>io.cloudbeat</groupId>
-    <artifactId>cb-client-java</artifactId>
+    <artifactId>cb-kit-java</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
-    <name>CloudBeat Clients Set for Java</name>
-    <description>CloudBeat client implementation for various Java-based testing frameworks</description>
-    <url>https://github.com/cloudbeat-io/cb-client-java</url>
+    <name>CloudBeat Client Kits for Java</name>
+    <description>CloudBeat test development kits (TDK) for various Java-based testing frameworks</description>
+    <url>https://github.com/cloudbeat-io/cb-kit-java</url>
 
     <licenses>
         <license>
             <name>MIT License</name>
-            <url>https://github.com/cloudbeat-io/cb-client-java/blob/master/LICENSE</url>
+            <url>https://github.com/cloudbeat-io/cb-kit-java/blob/master/LICENSE</url>
             <distribution>repo</distribution>
         </license>
     </licenses>    
   
     <modules>
-        <module>cb-client-common</module>
-        <module>cb-client-selenium4</module>
-        <module>cb-client-testng</module>
-        <module>cb-client-junit4</module>
-        <module>cb-client-cucumber1</module>
-        <module>cb-client-cucumber1-runner</module>
-        <module>cb-client-junit5</module>
+        <module>cb-kit-common</module>
+        <module>cb-kit-selenium4</module>
+        <module>cb-kit-testng</module>
+        <module>cb-kit-junit4</module>
+        <module>cb-kit-cucumber1</module>
+        <module>cb-kit-cucumber1-runner</module>
+        <module>cb-kit-junit5</module>
     </modules>
 
     <dependencies>

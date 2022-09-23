@@ -4,33 +4,33 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
+    <parent>        
         <groupId>io.cloudbeat</groupId>
-        <artifactId>cb-client-java</artifactId>
+        <artifactId>cb-kit-java</artifactId>
         <version>${revision}</version>
     </parent>
-
-    <name>CloudBeat Client for JUnit 5</name>
-    <artifactId>cb-client-junit5</artifactId>
+    
+    <name>CloudBeat Kit for TestNG</name>
+    <artifactId>cb-kit-testng</artifactId>
     <packaging>jar</packaging>
-
-    <properties>
-        <junit.jupiter.version>5.8.2</junit.jupiter.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
     <dependencies>
         <!-- CloudBeat -->
         <dependency>
             <groupId>io.cloudbeat</groupId>
-            <artifactId>cb-client-common</artifactId>
+            <artifactId>cb-kit-common</artifactId>
             <version>${revision}</version>
         </dependency>
-        <!-- JUnit -->
+        <!-- TestNG -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.14.3</version>
         </dependency>
     </dependencies>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
 </project>

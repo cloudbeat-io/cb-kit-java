@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>io.cloudbeat</groupId>
-        <artifactId>cb-client-java</artifactId>
+        <artifactId>cb-kit-java</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <name>CloudBeat Client for Selenium 4</name>
-    <artifactId>cb-client-selenium4</artifactId>
+    <name>CloudBeat Kit for Selenium 4</name>
+    <artifactId>cb-kit-selenium4</artifactId>
     <packaging>jar</packaging>
     
     <properties>
@@ -24,7 +24,7 @@
         <!-- CloudBeat -->
         <dependency>
             <groupId>io.cloudbeat</groupId>
-            <artifactId>cb-client-common</artifactId>
+            <artifactId>cb-kit-common</artifactId>
             <version>${revision}</version>
         </dependency>
         <!-- Selenium 4 -->

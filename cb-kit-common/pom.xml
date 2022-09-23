@@ -6,12 +6,12 @@
 
     <parent>        
         <groupId>io.cloudbeat</groupId>
-        <artifactId>cb-client-java</artifactId>
+        <artifactId>cb-kit-java</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <name>CloudBeat Java Common module</name>
-    <artifactId>cb-client-common</artifactId>
+    <name>CloudBeat Java Kits Common</name>
+    <artifactId>cb-kit-common</artifactId>
     <packaging>jar</packaging>
 
     
