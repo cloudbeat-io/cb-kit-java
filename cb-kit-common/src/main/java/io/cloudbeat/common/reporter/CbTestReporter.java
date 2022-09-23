@@ -204,7 +204,7 @@ public class CbTestReporter {
         endCase(caseFqn, null, throwable);
     }
     public void endCase(final String caseFqn, final TestStatus status, final Throwable throwable) throws Exception {
-        if (startedCase.isEmpty() || startedCase.get().getFqn() == null)
+        if (!startedCase.isPresent() || startedCase.get().getFqn() == null)
             return;
         if (!startedCase.get().getFqn().equals(caseFqn))
             throw new Exception("Cannot find started case: " + caseFqn);
@@ -385,7 +385,7 @@ public class CbTestReporter {
         }
     }
     public StepResult startCaseHook(final String name, final boolean isBefore) {
-        if (startedCase.isEmpty())
+        if (!startedCase.isPresent())
             return null;
         StepResult newHookStep;
         startedSteps.push(newHookStep = startedCase.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
@@ -395,7 +395,7 @@ public class CbTestReporter {
         endStep(hookResult, null, throwable, null);
     }
     public StepResult startSuiteHook(final String name, final String fqn, final boolean isBefore) {
-        if (startedSuite.isEmpty())
+        if (!startedSuite.isPresent())
             return null;
         StepResult newHookStep;
         startedSteps.push(newHookStep = startedSuite.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
