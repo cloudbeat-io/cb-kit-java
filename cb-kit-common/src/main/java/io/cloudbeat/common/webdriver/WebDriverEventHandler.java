@@ -263,34 +263,12 @@ public class WebDriverEventHandler {
 
     
     public void onException(final Throwable throwable) {
-        //final FailureResult failureModel = new FailureResult(throwable, this.reporter.getCurrentTestPackageName());
         if (lastStepId != null) {
             // try to take a screenshot
             String screenshot = wrapper.getScreenshot();
             reporter.failStep(lastStepId, throwable, screenshot);
         }
     }
-
-    /*private String getScreenshot(final WebDriver webDriver) {
-        if (webDriver instanceof TakesScreenshot) {
-            try {
-                return ((TakesScreenshot) webDriver).getScreenshotAs(OutputType.BASE64);
-            }
-            catch (Exception e) {}
-        }
-        return null;
-    }*/
-
-    
-    /*public <X> void beforeGetScreenshotAs(final OutputType<X> outputType) {
-
-    }
-
-    
-    public <X> void afterGetScreenshotAs(final OutputType<X> outputType, final X x) {
-
-    }*/
-
     
     public void beforeGetText(final AbstractWebElement elm) {
         final StepResult step = reporter.startStep("Getting text of  " + elm.getText());
@@ -358,24 +336,4 @@ public class WebDriverEventHandler {
 
         return logs;
     }
-
-    /*private Map<String, Number> getNavigationTimingStats(WebDriver webDriver) {
-        // navigation timing is relevant only for browser based tests
-        if (!isWeb)
-            return null;
-
-        JavascriptExecutor js = (JavascriptExecutor)webDriver;
-        long loadEvent = (long) js.executeScript("return (window.performance.timing.loadEventEnd - window.performance.timing.loadEventStart)");
-        long domContentLoadedEvent = (long) js.executeScript("return (window.performance.timing.domContentLoadedEventEnd - window.performance.timing.domContentLoadedEventStart)");
-
-        Map<String, Number> stats = new HashMap<>();
-        if (loadEvent > 0)
-            stats.put("loadEvent", loadEvent);
-        if (domContentLoadedEvent > 0)
-            stats.put("domContentLoadedEvent", domContentLoadedEvent);
-        // return null if both loadEvent and domContentLoadedEvent are 0
-        if (stats.keySet().size() > 0)
-            return stats;
-        return null;
-    }*/
 }

@@ -27,6 +27,8 @@ public class CbWebDriverListener implements WebDriverListener {
 
     @Override
     public void onError(Object target, Method method, Object[] args, InvocationTargetException e) {
+        if (e.getTargetException() != null)
+            eventHandler.onException(e.getTargetException());
         WebDriverListener.super.onError(target, method, args, e);
     }
 
@@ -132,12 +134,12 @@ public class CbWebDriverListener implements WebDriverListener {
 
     @Override
     public void beforeClick(WebElement element) {
-        WebDriverListener.super.beforeClick(element);
+        eventHandler.beforeClickOn(wrapElement(element));
     }
 
     @Override
     public void afterClick(WebElement element) {
-        WebDriverListener.super.afterClick(element);
+        eventHandler.afterClickOn(wrapElement(element));
     }
 
     @Override
@@ -152,12 +154,12 @@ public class CbWebDriverListener implements WebDriverListener {
 
     @Override
     public void beforeSendKeys(WebElement element, CharSequence... keysToSend) {
-        WebDriverListener.super.beforeSendKeys(element, keysToSend);
+        eventHandler.beforeChangeValueOf(wrapElement(element), keysToSend);
     }
 
     @Override
     public void afterSendKeys(WebElement element, CharSequence... keysToSend) {
-        WebDriverListener.super.afterSendKeys(element, keysToSend);
+        eventHandler.afterChangeValueOf(wrapElement(element), keysToSend);
     }
 
     @Override

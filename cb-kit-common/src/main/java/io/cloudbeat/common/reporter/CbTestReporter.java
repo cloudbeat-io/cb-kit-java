@@ -341,29 +341,7 @@ public class CbTestReporter {
         }
         // pop the step out from the stack
         startedSteps.pop();
-        /*LinkedList<StepResult> stepStack = new LinkedList<>();
-        StepResult currentStep = lastStep;
-        boolean stepFound = false;
-        while (currentStep != null) {
-            stepStack.push(currentStep);
-            if ((currentStep.getId() != null && currentStep.getId().equals(stepId))
-                || (currentStep.getFqn() != null && currentStep.getFqn().equals(stepId))
-            ) {
-                stepFound = true;
-                break;
-            }
-            currentStep = currentStep.getParentStep();
-        }
-        if (!stepFound)
-            return null;
-        final StepResult endedStep = stepStack.pop();*/
         stepResult.end(status, throwable, null, screenshot);
-        //lastStep = endedStep.getParentStep();
-        // make sure to end all children/parent steps, if they remain open
-        /*stepStack.stream().forEach((step) -> {
-            if (step.getEndTime() == 0)
-                step.end(status, throwable);
-        });*/
         return stepResult;
     }
 
@@ -502,29 +480,6 @@ public class CbTestReporter {
     public boolean hasSuites() {
         return result != null && result.getSuites().size() > 0;
     }
-
-    /*
-    private void loadConfig() {
-        String payloadpath = System.getProperty("payloadpath");;
-        String testmonitorUrl = System.getProperty("testmonitorurl");
-        testMonitorToken = System.getProperty("testmonitortoken");
-
-        try {
-            if (payloadpath != null && testmonitorUrl != null && testMonitorToken != null) {
-                testMonitorStatusUrl = testmonitorUrl + "/status";
-                payload = CbConfig.load(payloadpath);
-            }
-            else {
-                logInfo("Plugin will be disabled. One of payloadpath, testmonitorurl, or testmonitortoken parameters is missing.");
-            }
-        }
-        catch (IOException e) {
-            logError("Unable to load CloudBeat configuration settings.", e);
-            //LOGGER.error("Unable to load CloudBeat configuration settings.", e);
-        }
-        // TODO: make sure we throw an exception or handle in some other way the situation
-        // where no configuration parameters where provided (e.g. when user runs test outside CB environment)
-    }*/
 
     private void addSystemAttributes() {
         result.addAttribute("agent.hostname", getHostName());
