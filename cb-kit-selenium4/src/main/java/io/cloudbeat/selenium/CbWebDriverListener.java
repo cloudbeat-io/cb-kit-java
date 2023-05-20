@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -310,14 +311,19 @@ public class CbWebDriverListener implements WebDriverListener {
     }
 
     private static AbstractLocator wrapLocator(By locator) {
-        return null;
+        if (locator == null) return  null;
+        return new SE4Locator(locator);
     }
 
     private static AbstractWebElement wrapElement(WebElement element) {
-        return null;
+        if (element == null) return null;
+        return new SE4Element(element);
     }
 
     private static List<AbstractWebElement> wrapElements(List<WebElement> elements) {
-        return null;
+        if (elements == null) return null;
+        List<AbstractWebElement> wrappedElmList = new ArrayList<>();
+        elements.stream().forEach(seElm -> { wrappedElmList.add(new SE4Element(seElm)); });
+        return wrappedElmList;
     }
 }

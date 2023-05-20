@@ -10,11 +10,20 @@
         <version>${revision}</version>
     </parent>
 
-    <name>CloudBeat Java Kits Common</name>
+    <name>CloudBeat Java Kit Common</name>
+    <description>Common library for CloudBeat's Java-based Test Development Kit</description>
+    <url>https://github.com/cloudbeat-io/cb-kit-java/tree/main/cb-kit-common</url>
+
+    <groupId>io.cloudbeat</groupId>
     <artifactId>cb-kit-common</artifactId>
     <packaging>jar</packaging>
 
-    
+    <scm>
+        <connection>scm:git:git://github.com/cloudbeat-io/cb-kit-java.git</connection>
+        <developerConnection>scm:git:ssh://github.com/cloudbeat-io/cb-kit-java.git</developerConnection>
+        <url>https://github.com/cloudbeat-io/cb-kit-java/tree/main/cb-kit-common</url>
+    </scm>
+
     <dependencies>
         <dependency>
             <groupId>io.rest-assured</groupId>

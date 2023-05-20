@@ -112,8 +112,14 @@ public class StepResult {
         if (hasFailedSubStep)
             return TestStatus.FAILED;
         // if all step's sub-steps were skipped, then mark the step as skipped
-        boolean allSkippedSubSteps = steps.stream().allMatch(x -> x.status == TestStatus.SKIPPED);
-        return allSkippedSubSteps ? TestStatus.SKIPPED : TestStatus.PASSED;
+        boolean allSkippedSubSteps = !steps.isEmpty() && steps.stream().allMatch(x -> x.status == TestStatus.SKIPPED);
+        if (allSkippedSubSteps)
+            return TestStatus.SKIPPED;
+        // if there is at least one "broken" sub-step, then mark the step as broken
+        boolean anyBrokenSubStep = !steps.isEmpty() && steps.stream().anyMatch(x -> x.status == TestStatus.BROKEN);
+        if (anyBrokenSubStep)
+            return TestStatus.BROKEN;
+        return TestStatus.PASSED;
     }
 
     /* Setters */

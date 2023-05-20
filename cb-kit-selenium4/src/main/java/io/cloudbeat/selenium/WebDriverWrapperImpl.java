@@ -42,5 +42,14 @@ public class WebDriverWrapperImpl implements WebDriverWrapper {
         org.openqa.selenium.WebDriver decorated = new EventFiringDecorator(listener).decorate((org.openqa.selenium.WebDriver) driver);
         return (D)decorated;
     }
+    @Override
+    public <D, L> L getListener(D driver) {
+        if (!(driver instanceof org.openqa.selenium.WebDriver))
+            return null;
+        CbWebDriverListener listener = new CbWebDriverListener(
+                new WebDriverEventHandler(reporter, new Selenium4WebDriver((WebDriver) driver))
+        );
+        return (L)listener;
+    }
 
 }

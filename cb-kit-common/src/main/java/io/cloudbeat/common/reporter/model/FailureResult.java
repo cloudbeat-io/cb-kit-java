@@ -46,7 +46,8 @@ public class FailureResult {
 
     private static String getTestPackageName() {
         CbTestContext ctx = CbTestContext.getInstance();
-        if (ctx != null && ctx.isActive() && ctx.getCurrentTestClass() != null)
+        if (ctx != null && ctx.isActive() && ctx.getCurrentTestClass() != null
+                && ctx.getCurrentTestClass().getPackage() != null)
             return ctx.getCurrentTestClass().getPackage().getName();
         return null;
     }

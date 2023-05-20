@@ -88,6 +88,7 @@ public class WebDriverEventHandler {
 
     
     public void beforeNavigateTo(final String url) {
+        wrapper.enableDevToolsPerformance();
         final StepResult step = reporter.startStep("Navigate to " + url);
         lastStepId = step != null ? step.getId() : null;
     }
@@ -100,7 +101,13 @@ public class WebDriverEventHandler {
         String stepName = "Navigate to " + url;
 
         // get navigation timing metrics
-        final Map<String, Number> stats = wrapper.getNavigationTimingStats();
+        Map<String, Number> stats = new HashMap<>();
+        try {
+            wrapper.addNavigationTimingStats(stats);
+            wrapper.addDevToolsPerformanceStats(stats);
+            wrapper.disableDevToolsPerformance();
+        }
+        catch (Throwable ignore) {}
 
         // get browser or device logs
         final List<LogMessage> logs = collectLogs();
@@ -197,7 +204,12 @@ public class WebDriverEventHandler {
     
     public void afterClickOn(final AbstractWebElement elm) {
         // get navigation timing metrics
-        final Map<String, Number> stats = wrapper.getNavigationTimingStats();
+        final Map<String, Number> stats = new HashMap<>();
+
+        try {
+            wrapper.addNavigationTimingStats(stats);
+        }
+        catch (Throwable ignore) {}
 
         reporter.passStep(lastStepId, stats);
         lastStepId = null;
@@ -292,11 +304,15 @@ public class WebDriverEventHandler {
     }
 
     private String getLocatorDisplayName(final AbstractLocator by) {
+        if (by == null)
+            return "";
         final String byLocatorStr = by.toString();
         return String.format("%s", byLocatorStr.replace("By.", "by "));
     }
 
     private String getElementDisplayName(final AbstractWebElement webElement) {
+        if (webElement == null)
+            return "element";
         final String text = webElement.getText();
         final String tagName = webElement.getTagName();
         final String elmType = webElement.getAttribute("type");
@@ -331,10 +347,14 @@ public class WebDriverEventHandler {
 
     private List<LogMessage> collectLogs() {
         ArrayList<LogMessage> logs = new ArrayList<>();
-        if (isWeb)
-            wrapper.addBrowserLogs(logs);
-        if (isAndroid)
-            wrapper.addLogcatLogs(logs);
+
+        try {
+            if (isWeb)
+                wrapper.addBrowserLogs(logs);
+            if (isAndroid)
+                wrapper.addLogcatLogs(logs);
+        }
+        catch (Exception ignore) {}
 
         return logs;
     }

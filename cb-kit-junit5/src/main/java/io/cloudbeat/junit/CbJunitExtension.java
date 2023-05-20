@@ -51,6 +51,10 @@ public class CbJunitExtension implements
         return ctx.wrapWebDriver(driver);
     }
 
+    public static <D, L> L getWebDriverListener(D driver) {
+        return ctx.getWebDriverListener(driver);
+    }
+
     public static String getWebDriverUrl() {
         CbConfig config = CbTestContext.getInstance().getConfig();
         if (config != null) {

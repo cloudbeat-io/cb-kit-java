@@ -77,8 +77,43 @@ public class CbTestContext {
 
     public boolean isActive() { return isActive; }
 
+    public <D, L> L getWebDriverListener(D driver) {
+        try {
+            Class wrapperClass = Class.forName("io.cloudbeat.selenium.WebDriverWrapperImpl");
+            WebDriverWrapper wrapper = (WebDriverWrapper) wrapperClass
+                    .getDeclaredConstructor(new Class[] { CbTestReporter.class })
+                    .newInstance(this.reporter);
+            if (wrapper != null)
+                return wrapper.getListener(driver);
+        }
+        catch (ClassNotFoundException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        catch (NoSuchMethodException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        catch (InstantiationException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        catch (IllegalAccessException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        catch (InvocationTargetException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        catch (RuntimeException e) {
+            // ignore
+            System.out.println(e.getMessage());
+        }
+        return null;
+    }
     public <D> D wrapWebDriver(D driver) {
-        if (this.reporter == null || !this.reporter.isStarted())
+        if (this.reporter == null || !this.isActive())
             return driver;
         try {
             Class wrapperClass = Class.forName("io.cloudbeat.selenium.WebDriverWrapperImpl");

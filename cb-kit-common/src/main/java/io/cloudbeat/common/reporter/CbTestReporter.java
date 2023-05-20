@@ -61,7 +61,7 @@ public class CbTestReporter {
     }
 
     public boolean isStarted() {
-        return config != null && this.cbClient != null && instance != null && result != null;
+        return config != null && /*this.cbClient != null &&*/ instance != null && result != null;
     }
 
     public void setFramework(final String frameworkName) {
