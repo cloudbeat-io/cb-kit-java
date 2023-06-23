@@ -16,7 +16,7 @@
     
     <properties>
         <!-- Selenium and Appium versions -->
-        <selenium.version>4.8.1</selenium.version>
+        <selenium.version>4.9.1</selenium.version>
         <appium.version>8.1.1</appium.version>
     </properties>
 
@@ -55,7 +55,7 @@
 		</dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
-            <artifactId>selenium-devtools-v108</artifactId>
+            <artifactId>selenium-devtools-v111</artifactId>
             <version>${selenium.version}</version>
         </dependency>
         <!-- Appium -->

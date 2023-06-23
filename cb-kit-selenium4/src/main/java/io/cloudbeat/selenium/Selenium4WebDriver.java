@@ -6,8 +6,8 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
-import org.openqa.selenium.devtools.v108.performance.Performance;
-import org.openqa.selenium.devtools.v108.performance.model.Metric;
+import org.openqa.selenium.devtools.v111.performance.Performance;
+import org.openqa.selenium.devtools.v111.performance.model.Metric;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogType;
 
