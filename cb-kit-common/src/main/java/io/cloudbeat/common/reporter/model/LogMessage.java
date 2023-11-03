@@ -1,34 +1,45 @@
 package io.cloudbeat.common.reporter.model;
 
 import java.util.Calendar;
+import java.util.List;
 import java.util.UUID;
 
 public class LogMessage {
     String id;
     String message;
-    String level;
-    long timestamp;
+    LogLevel level;
+    long time;
+    LogSource src;
+    List<Object> args;
     FailureResult failure;
 
     public LogMessage() {
         this.id = UUID.randomUUID().toString();
-        this.timestamp = Calendar.getInstance().getTimeInMillis();
+        this.time = Calendar.getInstance().getTimeInMillis();
     }
 
     public void setMessage(String message) {
         this.message = message;
     }
 
-    public void setLevel(String level) {
+    public void setLevel(LogLevel level) {
         this.level = level;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setTime(long time) {
+        this.time = time;
     }
 
     public void setFailure(FailureResult failure) {
         this.failure = failure;
+    }
+
+    public void setArgs(List<Object> args) {
+        this.args = args;
+    }
+
+    public void setSrc(LogSource source) {
+        this.src = source;
     }
 
     public String getId() { return id; }
@@ -37,12 +48,19 @@ public class LogMessage {
         return message;
     }
 
-    public String getLevel() {
+    public LogLevel getLevel() {
         return level;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public long getTime() {
+        return time;
     }
 
+    public LogSource getSrc() {
+        return src;
+    }
+
+    public List<Object> getArgs() {
+        return args;
+    }
 }

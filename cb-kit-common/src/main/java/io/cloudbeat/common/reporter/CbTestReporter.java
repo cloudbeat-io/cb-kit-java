@@ -4,6 +4,7 @@ import io.cloudbeat.common.client.CbClientException;
 import io.cloudbeat.common.client.CbHttpClient;
 import io.cloudbeat.common.client.api.RuntimeApi;
 import io.cloudbeat.common.config.CbConfig;
+import io.cloudbeat.common.helper.AttachmentHelper;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
 import io.cloudbeat.common.reporter.model.*;
@@ -20,6 +21,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Consumer;
 
 public class CbTestReporter {
     //private static final Logger LOGGER = LoggerFactory.getLogger(CbTestReporter.class);
@@ -34,10 +36,12 @@ public class CbTestReporter {
     private String frameworkVersion;
     private String runnerName;
     private TestResult result;
-    private Optional<SuiteResult> startedSuite = Optional.empty();
-    private Optional<CaseResult> startedCase = Optional.empty();
     private boolean alreadyTriedToStartInstance = false;
-    private final Deque<StepResult> startedSteps = new ConcurrentLinkedDeque<>();
+    // local thread safe
+    private final ThreadLocal<CaseResult> lastCaseResult = new ThreadLocal();
+    private final ThreadLocal<SuiteResult> lastSuiteResult = new ThreadLocal();
+    private final ThreadLocal<Deque<StepResult>> startedStepsQueue = ThreadLocal.withInitial(ConcurrentLinkedDeque::new);
+    private final ThreadLocal<String> lastScreenshotOnException = new ThreadLocal();
 
     public CbTestReporter(CbConfig config) {
         this.config = config;
@@ -160,71 +164,101 @@ public class CbTestReporter {
         instance = null;
     }
 
-    public void startSuite(final String name, final String fqn) {
-        // do not add the same suite twice
-        if (Objects.nonNull(fqn) && result.lastSuite(fqn).isPresent())
-            return;
-        final SuiteResult suite = result.addNewSuite(name);
-        suite.setFqn(fqn);
-        startedSuite = Optional.of(suite);
+    public SuiteResult startSuite(final String name, final String fqn) {
+        final SuiteResult newSuite = result.addNewSuite(name);
+        newSuite.setFqn(fqn);
+        // make sure we clean up previous case and started steps
+        lastCaseResult.remove();
+        startedStepsQueue.remove();
+        lastScreenshotOnException.remove();
+        lastSuiteResult.set(newSuite);
+        return newSuite;
     }
 
-    public void endSuite(String fqn) {
-        result.lastSuite(fqn).ifPresent(suite -> {
-           suite.end();
-           if (startedSuite.isPresent() && startedSuite.get().getFqn() != null && startedSuite.get().getFqn().equals(fqn))
-               startedSuite = Optional.empty();
-        });
+    public SuiteResult startSuite(final String name, final Consumer<SuiteResult> updateFunc) {
+        final SuiteResult newSuite = result.addNewSuite(name);
+        // make sure we clean up previous case and started steps
+        lastCaseResult.remove();
+        startedStepsQueue.remove();
+        lastSuiteResult.set(newSuite);
+        updateFunc.accept(newSuite);
+        return newSuite;
     }
 
-    public void endLastSuite() {
-        startedSuite.ifPresent(suite -> {
-            suite.end();
-        });
-        startedSuite = Optional.empty();
+    public SuiteResult endSuite(String fqn) {
+        final SuiteResult startedSuite;
+        if (lastSuiteResult.get() != null)
+            startedSuite = lastSuiteResult.get();
+        else
+            startedSuite = result.getSuites().stream()
+                .filter(
+                    suiteResult -> suiteResult.getFqn().equals(fqn)
+                ).findFirst().orElse(null);
+
+        if (startedSuite == null || !startedSuite.getFqn().equals(fqn))
+            return null;
+        startedSuite.end();
+        return startedSuite;
     }
 
-    public CaseResult startCase(final String name, final String fqn, final String suiteFqn) throws Exception {
-        SuiteResult suiteResult = result.lastSuite(suiteFqn).orElseThrow(
-                () -> new Exception("No started suite was found. You must call startSuite first.")
-        );
-        // do not add the same case twice
-        //if (Objects.nonNull(fqn) && suiteResult.lastCase(fqn).isPresent())
-        //    return;
-        CaseResult caseResult = suiteResult.addNewCaseResult(name);
-        caseResult.setFqn(fqn);
-        startedCase = Optional.of(caseResult);
-        return caseResult;
+    public SuiteResult endStartedSuite() {
+        if (lastSuiteResult.get() == null)
+            return null;
+        SuiteResult startedSuite = lastSuiteResult.get();
+        startedSuite.end();
+        return startedSuite;
     }
 
-    public void endCase(final String caseFqn) throws Exception {
+    public CaseResult startCase(final String name, final String fqn) {
+        SuiteResult startedSuite = lastSuiteResult.get();
+        if (startedSuite == null)
+            return null;
+        CaseResult newCase = startedSuite.addNewCaseResult(name);
+        newCase.setFqn(fqn);
+        startedStepsQueue.remove();
+        lastCaseResult.set(newCase);
+        return newCase;
+    }
+
+    public void endCase(final String caseFqn) {
         endCase(caseFqn, null, null);
     }
-    public void endCase(final String caseFqn, final Throwable throwable) throws Exception {
+    public void endCase(final String caseFqn, final Throwable throwable) {
         endCase(caseFqn, null, throwable);
     }
-    public void endCase(final String caseFqn, final TestStatus status, final Throwable throwable) throws Exception {
-        if (!startedCase.isPresent() || startedCase.get().getFqn() == null)
-            return;
-        if (!startedCase.get().getFqn().equals(caseFqn))
-            throw new Exception("Cannot find started case: " + caseFqn);
+    public CaseResult endCase(final String caseFqn, final TestStatus status, final Throwable throwable) {
+        final CaseResult startedCase;
+        if (lastCaseResult.get() != null)
+            startedCase = lastCaseResult.get();
+        else if (lastSuiteResult.get() != null)
+            startedCase = lastSuiteResult.get().getCases().stream()
+                    .filter(
+                            caseResult -> caseResult.getFqn().equals(caseFqn)
+                    ).findFirst().orElse(null);
+        else
+            return null;
+
+        if (startedCase == null || !startedCase.getFqn().equals(caseFqn))
+            return null;
 
         endStartedSteps(status, throwable);
-        startedCase.get().end(status, throwable);
-        startedCase = Optional.empty();
+        startedCase.end(status, throwable);
+        return startedCase;
     }
 
     private void endStartedSteps(TestStatus status, Throwable throwable) {
+        if (startedStepsQueue.get() == null || startedStepsQueue.get().isEmpty())
+            return;
         // if the case is ended due to error, there might be open steps that need to be closed
-        while (!startedSteps.isEmpty()) {
-            StepResult stepToEnd = startedSteps.pop();
+        while (!startedStepsQueue.get().isEmpty()) {
+            StepResult stepToEnd = startedStepsQueue.get().pop();
             // end current and all the parent steps
             do {
                 if (stepToEnd.getEndTime() == null)
                     stepToEnd.end(status, throwable);
                 stepToEnd = stepToEnd.getParentStep();
-                if (startedSteps.contains(stepToEnd))
-                    startedSteps.remove(stepToEnd);
+                if (startedStepsQueue.get().contains(stepToEnd))
+                    startedStepsQueue.get().remove(stepToEnd);
             } while (stepToEnd != null);
         }
     }
@@ -256,10 +290,10 @@ public class CbTestReporter {
             @Nullable final List<String> args
     ) {
         StepResult newStep;
-        if (!startedSteps.isEmpty())
-            startedSteps.push(newStep = startedSteps.peek().addNewSubStep(name, type));
-        else if (startedCase.isPresent()) {
-            startedSteps.push(newStep = startedCase.get().addNewStep(name, type));
+        if (!startedStepsQueue.get().isEmpty())
+            startedStepsQueue.get().push(newStep = startedStepsQueue.get().peek().addNewSubStep(name, type));
+        else if (lastCaseResult.get() != null) {
+            startedStepsQueue.get().push(newStep = lastCaseResult.get().addNewStep(name, type));
         }
         else    // we are not supposed to call startStep if no case or parent step was started before
             return null;
@@ -271,43 +305,54 @@ public class CbTestReporter {
     }
 
     public void endLastStep() {
-        if (!startedSteps.isEmpty()) {
-            endStep(startedSteps.peek().getId(), null, null);
+        if (!startedStepsQueue.get().isEmpty()) {
+            endStep(startedStepsQueue.get().peek(), null, null, null);
         }
     }
 
     public void passLastStep() {
-        if (!startedSteps.isEmpty()) {
-            endStep(startedSteps.peek().getId(), TestStatus.PASSED, null);
+        if (!startedStepsQueue.get().isEmpty()) {
+            endStep(startedStepsQueue.get().peek().getId(), TestStatus.PASSED, null);
         }
     }
 
-    public void passStep(final String stepId) {
-        passStep(stepId, null);
+    public void failLastStep(Throwable throwable) {
+        failLastStep(throwable, null);
     }
 
-    public void passStep(final String stepId, Map<String, Number> stats) {
-        passStep(stepId, stats, null);
+    public void failLastStep(final Throwable throwable, final String screenshot) {
+        if (!startedStepsQueue.get().isEmpty()) {
+            endStep(startedStepsQueue.get().peek().getId(), TestStatus.FAILED, throwable, screenshot);
+        }
     }
 
-    public void passStep(final String stepId, Map<String, Number> stats, List<LogMessage> logs) {
+    public StepResult passStep(final String stepId) {
+        return passStep(stepId, null);
+    }
+
+    public StepResult passStep(final String stepId, Map<String, Number> stats) {
+        return passStep(stepId, stats, null);
+    }
+
+    public StepResult passStep(final String stepId, Map<String, Number> stats, List<LogMessage> logs) {
         final StepResult step = endStep(stepId, TestStatus.PASSED, null);
         if (stats != null)
             step.addStats(stats);
         if (logs != null)
             step.addLogs(logs);
+        return step;
     }
 
-    public void failStep(final String name, Throwable throwable) {
-        failStep(name, throwable, null);
+    public StepResult failStep(final String name, Throwable throwable) {
+        return failStep(name, throwable, null);
     }
 
-    public void failStep(final String stepId, Throwable throwable, String screenshot) {
-        endStep(stepId, TestStatus.FAILED, throwable, screenshot);
+    public StepResult failStep(final String stepId, Throwable throwable, String screenshot) {
+        return endStep(stepId, TestStatus.FAILED, throwable, screenshot);
     }
 
-    public void failStep(final StepResult stepResult, Throwable throwable, String screenshot) {
-        endStep(stepResult, TestStatus.FAILED, throwable, screenshot);
+    public StepResult failStep(final StepResult stepResult, Throwable throwable, String screenshot) {
+        return endStep(stepResult, TestStatus.FAILED, throwable, screenshot);
     }
 
     public StepResult endStep(final String stepId) {
@@ -319,7 +364,7 @@ public class CbTestReporter {
 
     public StepResult endStep(final String stepId, TestStatus status, Throwable throwable, String screenshot) {
         // see if step with specified id is found in started steps list
-        Optional<StepResult> matchedStep = startedSteps.stream()
+        Optional<StepResult> matchedStep = startedStepsQueue.get().stream()
                 .filter(
                     stepResult -> stepResult.getId().equals(stepId)
                     || (stepResult.getFqn() != null && stepResult.getFqn().equals(stepId)))
@@ -329,19 +374,30 @@ public class CbTestReporter {
         return endStep(matchedStep.get(), status, throwable, screenshot);
     }
 
-    public StepResult endStep(final StepResult stepResult, TestStatus status, Throwable throwable, String screenshot) {
-        if (startedSteps.isEmpty() || !startedSteps.contains(stepResult))
+    public StepResult endStep(final StepResult stepResult,
+                              final TestStatus status,
+                              final Throwable throwable,
+                              final String screenshot) {
+        if (startedStepsQueue.get().isEmpty() || !startedStepsQueue.get().contains(stepResult))
             return null;
         // if the step to be ended is not the last one that has been started
         // then end all the steps in the stack that were started after the specified step (e.g. stepResult)
-        while (startedSteps.peek() != stepResult) {
-            StepResult stepToBeEnded = startedSteps.pop();
+        while (startedStepsQueue.get().peek() != stepResult) {
+            StepResult stepToBeEnded = startedStepsQueue.get().pop();
             if (stepToBeEnded.getEndTime() != null)
                 stepToBeEnded.end();
         }
         // pop the step out from the stack
-        startedSteps.pop();
-        stepResult.end(status, throwable, null, screenshot);
+        startedStepsQueue.get().pop();
+        if (screenshot == null
+                && lastScreenshotOnException.get() != null
+                && throwable != null) {
+            stepResult.end(status, throwable, null, lastScreenshotOnException.get());
+            lastScreenshotOnException.remove();
+        }
+        else
+            stepResult.end(status, throwable, null, screenshot);
+
         return stepResult;
     }
 
@@ -351,6 +407,11 @@ public class CbTestReporter {
 
     public void step(final String name, Runnable stepFunc, boolean continueOnError) {
         final StepResult step = startStep(name);
+        // we will get step == null if test class is not extended with CbJUnitExtension
+        if (step == null) {
+            stepFunc.run();
+            return;
+        }
         final String stepId = step.getId();
         try {
             stepFunc.run();
@@ -362,38 +423,47 @@ public class CbTestReporter {
                 throw e;
         }
     }
-    public StepResult startCaseHook(final String name, final boolean isBefore) {
-        if (!startedCase.isPresent())
+    public StepResult startCaseHook(final String name, final String fqn, final boolean isBefore) {
+        if (lastCaseResult.get() == null)
             return null;
         StepResult newHookStep;
-        startedSteps.push(newHookStep = startedCase.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
+        startedStepsQueue.get().push(newHookStep = lastCaseResult.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
+        newHookStep.setFqn(fqn);
         return newHookStep;
     }
-    public void endCaseHook(final StepResult hookResult, final Throwable throwable) {
-        endStep(hookResult, null, throwable, null);
+    public StepResult endCaseHook(final StepResult hookResult, final Throwable throwable) {
+        return endStep(hookResult, null, throwable, null);
+    }
+    public StepResult endCaseHook(final String hookFqn, final Throwable throwable) {
+        return endStep(hookFqn, null, throwable, null);
     }
     public StepResult startSuiteHook(final String name, final String fqn, final boolean isBefore) {
-        if (!startedSuite.isPresent())
+        if (lastSuiteResult.get() == null)
             return null;
         StepResult newHookStep;
-        startedSteps.push(newHookStep = startedSuite.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
+        startedStepsQueue.get().push(newHookStep = lastSuiteResult.get().addNewHook(name, isBefore ? HookType.BEFORE : HookType.AFTER));
         newHookStep.setFqn(fqn);
         return newHookStep;
     }
     public StepResult endSuiteHook(final String fqn) {
-        return endStep(fqn);
+        return endSuiteHook(fqn, TestStatus.PASSED, null);
     }
+
+    public StepResult endSuiteHook(final String fqn, TestStatus status, Throwable throwable) {
+        return endStep(fqn, status, throwable);
+    }
+
     public StepResult beforeCaseHook(final String name, final TestStatus status) {
-        if (startedCase.isPresent()) {
-            final StepResult hookResult = startedCase.get().addNewHook(name, HookType.BEFORE);
+        if (lastCaseResult.get() != null) {
+            final StepResult hookResult = lastCaseResult.get().addNewHook(name, HookType.BEFORE);
             hookResult.end(status);
             return hookResult;
         }
         return null;
     }
     public StepResult afterCaseHook(final String name, final TestStatus status) {
-        if (startedCase.isPresent()) {
-            final StepResult hookResult = startedCase.get().addNewHook(name, HookType.AFTER);
+        if (lastCaseResult.get() != null) {
+            final StepResult hookResult = lastCaseResult.get().addNewHook(name, HookType.AFTER);
             hookResult.end(status);
             return hookResult;
         }
@@ -439,25 +509,38 @@ public class CbTestReporter {
         if (logMessage == null)
             return;
         // define were to add the log: current step, current case or current suite
-        if (!startedSteps.isEmpty())
-            startedSteps.peek().addLogMessage(logMessage);
-        else if (startedCase.isPresent())
-            startedCase.get().addLogMessage(logMessage);
-        else if (startedSuite.isPresent())
-            startedSuite.get().addLogMessage(logMessage);
+        if (!startedStepsQueue.get().isEmpty())
+            startedStepsQueue.get().peek().addLogMessage(logMessage);
+        else if (lastCaseResult.get() != null)
+            lastCaseResult.get().addLogMessage(logMessage);
+        else if (lastSuiteResult.get() != null)
+            lastSuiteResult.get().addLogMessage(logMessage);
+    }
+
+    public void setScreenshotOnException(String base64Data) {
+        this.lastScreenshotOnException.set(base64Data);
     }
 
     public void logInfo(final String message) {
-
+        final LogMessage logMessage = new LogMessage();
+        logMessage.setSrc(LogSource.USER);
+        logMessage.setLevel(LogLevel.INFO);
+        logMessage.setMessage(message);
+        logMessage(logMessage);
     }
 
     public void logWarning(final String message) {
-
+        final LogMessage logMessage = new LogMessage();
+        logMessage.setSrc(LogSource.USER);
+        logMessage.setLevel(LogLevel.WARNING);
+        logMessage.setMessage(message);
+        logMessage(logMessage);
     }
 
     public void logError(final String message) {
         logError(message, null);
     }
+
     public void logError(Throwable error) {
         logError(null, error);
     }
@@ -467,7 +550,8 @@ public class CbTestReporter {
         logMessage.setMessage(message);
         if (error != null)
             logMessage.setFailure(new FailureResult(error));
-        logMessage.setLevel(LogLevel.ERROR.value());
+        logMessage.setSrc(LogSource.USER);
+        logMessage.setLevel(LogLevel.ERROR);
         logMessage(logMessage);
     }
 
@@ -491,6 +575,28 @@ public class CbTestReporter {
         result.addAttribute("agent.user.home", SystemUtils.USER_HOME);
         result.addAttribute("agent.user.timezone", SystemUtils.USER_TIMEZONE);
     }
+
+    public void addScreencastAttachment(final String videoFilePath, final boolean addToStep) {
+        final IResultWithAttachment resultWithAttachment;
+        if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
+            resultWithAttachment = startedStepsQueue.get().peek();
+        }
+        else if (!addToStep) {
+            if (lastCaseResult.get() != null)
+                resultWithAttachment = lastCaseResult.get();
+            else if (lastSuiteResult.get() != null)
+                resultWithAttachment = lastSuiteResult.get();
+            else
+                return;
+        }
+        else
+            return;
+        Attachment attachment = AttachmentHelper.prepareScreencastAttachment(videoFilePath);
+        resultWithAttachment.addAttachment(attachment);
+    }
+
+
+
     private static String getHostName() {
         try {
             return Optional.ofNullable(SystemUtils.getHostName()).orElse(InetAddress.getLocalHost().getHostName());
@@ -500,12 +606,22 @@ public class CbTestReporter {
         }
     }
 
-    public StepResult getLastStep() {
-        return startedSteps.peek();
+    public StepResult getLastStartedStep() {
+        if (startedStepsQueue.get() != null)
+            return startedStepsQueue.get().peek();
+        return null;
+    }
+
+    public SuiteResult getStartedSuite() {
+        if (lastSuiteResult.get() != null)
+            return lastSuiteResult.get();
+        return null;
     }
 
     public CaseResult getStartedCase() {
-        return startedCase.orElse(null);
+        if (lastCaseResult.get() != null)
+            return lastCaseResult.get();
+        return null;
     }
 
 }

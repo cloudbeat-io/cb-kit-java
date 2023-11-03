@@ -1,5 +1,7 @@
 package io.cloudbeat.common.reporter.model;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum StepType {
     GENERAL("general"),
     HTTP("http"),
@@ -13,12 +15,13 @@ public enum StepType {
         value = v;
     }
 
-    public String value() {
+    @JsonValue
+    public String getValue() {
         return value;
     }
 
     @Override
     public String toString() {
-        return value();
+        return value;
     }
 }

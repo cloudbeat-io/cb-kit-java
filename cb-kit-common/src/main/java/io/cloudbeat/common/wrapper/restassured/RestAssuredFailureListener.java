@@ -1,4 +1,4 @@
-package io.cloudbeat.common.restassured;
+package io.cloudbeat.common.wrapper.restassured;
 
 import io.cloudbeat.common.CbTestContext;
 import io.restassured.listener.ResponseValidationFailureListener;

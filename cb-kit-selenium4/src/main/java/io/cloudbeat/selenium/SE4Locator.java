@@ -1,7 +1,7 @@
 package io.cloudbeat.selenium;
 
-import io.cloudbeat.common.webdriver.AbstractLocator;
-import io.cloudbeat.common.webdriver.LocatorSelectorType;
+import io.cloudbeat.common.wrapper.webdriver.AbstractLocator;
+import io.cloudbeat.common.wrapper.webdriver.LocatorSelectorType;
 import org.openqa.selenium.By;
 
 public class SE4Locator implements AbstractLocator {

@@ -3,6 +3,11 @@ package io.cloudbeat.common.reporter.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.NullSerializer;
+import io.cloudbeat.common.har.model.HarEntry;
+import io.cloudbeat.common.har.model.HarLog;
+import io.cloudbeat.common.helper.AttachmentHelper;
+import io.cloudbeat.common.helper.WebDriverHelper;
+import io.cloudbeat.common.model.HttpNetworkEntry;
 import io.cloudbeat.common.reporter.model.extra.IStepExtra;
 import io.cloudbeat.common.reporter.serializer.EpochTimeSerializer;
 import io.cloudbeat.common.reporter.serializer.TestStatusSerializer;
@@ -11,7 +16,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class StepResult {
+public class StepResult implements IResultWithAttachment {
     @Nonnull
     String id;
     @Nonnull
@@ -38,6 +43,8 @@ public class StepResult {
     final ArrayList<StepResult> steps = new ArrayList<>();
     Map<String, Number> stats = new HashMap<>();
     final ArrayList<LogMessage> logs = new ArrayList<>();
+
+    ArrayList<Attachment> attachments = new ArrayList<>();
 
     public StepResult(String name) {
         this(name, StepType.GENERAL);
@@ -71,7 +78,10 @@ public class StepResult {
     public void end(TestStatus status, Throwable throwable, Long duration, String screenshot) {
         this.endTime = duration == null ? Calendar.getInstance().getTimeInMillis() : this.startTime + duration;
         this.duration = duration == null ? endTime - startTime : duration;
-        this.screenShot = screenshot;
+        // screenShot might be already pre-set by direct call to setScreenShot method
+        // so make sure we do not override this.screenShot with null screenshot argument
+        if (screenshot != null)
+            this.screenShot = screenshot;
         if (throwable != null)
             this.failure = new FailureResult(throwable);
         // calculate status automatically or force the provided status
@@ -103,6 +113,10 @@ public class StepResult {
                 return;     // do not override existing stats
             this.stats.put(statName, newStats.get(statName));
         });
+    }
+
+    public void setScreenShot(final String screenShot) {
+        this.screenShot = screenShot;
     }
 
     private TestStatus calculateStepStatus() {
@@ -140,9 +154,17 @@ public class StepResult {
 
     public long getStartTime() { return startTime; }
 
+    public void setStartTime(Long startTime) { this.startTime = startTime; }
+
     public Long getEndTime() { return endTime; }
 
+    public void setEndTime(Long endTime) { this.endTime = endTime; }
+
     public Long getDuration() { return duration; }
+
+    public void setDuration(Long duration) {
+        this.duration = duration;
+    }
 
     public List<StepResult> getSteps() { return steps; }
 
@@ -159,4 +181,20 @@ public class StepResult {
     public IStepExtra getExtra(String name) { return extra.getOrDefault(name, null); }
     public  void addExtra(String name, IStepExtra extra) { this.extra.put(name, extra); }
     public  IStepExtra removeExtra(String name) { return this.extra.remove(name); }
+
+    @Override
+    public void addAttachment(Attachment attachment) {
+        attachments.add(attachment);
+    }
+    @Override
+    public List<Attachment> getAttachments() {
+        return attachments;
+    }
+
+    public void addHarAttachment(final HarLog harLog) {
+        Attachment attachment = AttachmentHelper.prepareHarAttachment(harLog);
+        if (attachment != null) {
+            addAttachment(attachment);
+        }
+    }
 }

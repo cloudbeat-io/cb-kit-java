@@ -1,18 +1,13 @@
 package io.cloudbeat.selenium;
 
 import io.cloudbeat.common.reporter.CbTestReporter;
-import io.cloudbeat.common.reporter.model.LogMessage;
-import io.cloudbeat.common.webdriver.AbstractWebDriver;
-import io.cloudbeat.common.webdriver.WebDriverEventHandler;
-import io.cloudbeat.common.webdriver.WebDriverWrapper;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.HasCapabilities;
+import io.cloudbeat.common.wrapper.webdriver.AbstractWebDriver;
+import io.cloudbeat.common.wrapper.webdriver.WebDriverEventHandler;
+import io.cloudbeat.common.wrapper.webdriver.WebDriverWrapper;
+import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
+import org.apache.commons.lang3.tuple.Pair;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.events.EventFiringDecorator;
-
-import java.util.List;
-import java.util.Map;
 
 public class WebDriverWrapperImpl implements WebDriverWrapper {
     private CbTestReporter reporter;
@@ -33,23 +28,27 @@ public class WebDriverWrapperImpl implements WebDriverWrapper {
     }
 
     @Override
-    public <D> D wrap(D driver) {
-        if (!(driver instanceof org.openqa.selenium.WebDriver))
-            return driver;
+    public <D> Pair<D, AbstractWebDriver> wrap(D driver, WrapperOptions options) {
+        if (!(driver instanceof org.openqa.selenium.WebDriver) || reporter == null)
+            return Pair.of(driver, null);
+        final AbstractWebDriver abstractDriver;
         CbWebDriverListener listener = new CbWebDriverListener(
-                new WebDriverEventHandler(reporter, new Selenium4WebDriver((WebDriver) driver))
+                new WebDriverEventHandler(reporter, abstractDriver = new Selenium4WebDriver((WebDriver) driver)),
+                options
         );
         org.openqa.selenium.WebDriver decorated = new EventFiringDecorator(listener).decorate((org.openqa.selenium.WebDriver) driver);
-        return (D)decorated;
+        return Pair.of((D)decorated, abstractDriver);
     }
     @Override
-    public <D, L> L getListener(D driver) {
-        if (!(driver instanceof org.openqa.selenium.WebDriver))
-            return null;
+    public <D, L> Pair<L, AbstractWebDriver> getListener(D driver, WrapperOptions options) {
+        if (!(driver instanceof org.openqa.selenium.WebDriver) || reporter == null)
+            return Pair.of(null, null);
+        final AbstractWebDriver abstractDriver;
         CbWebDriverListener listener = new CbWebDriverListener(
-                new WebDriverEventHandler(reporter, new Selenium4WebDriver((WebDriver) driver))
+                new WebDriverEventHandler(reporter, abstractDriver = new Selenium4WebDriver((WebDriver) driver)),
+                options
         );
-        return (L)listener;
+        return Pair.of((L)listener, abstractDriver);
     }
 
 }

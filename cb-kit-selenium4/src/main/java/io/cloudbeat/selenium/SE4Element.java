@@ -1,6 +1,6 @@
 package io.cloudbeat.selenium;
 
-import io.cloudbeat.common.webdriver.AbstractWebElement;
+import io.cloudbeat.common.wrapper.webdriver.AbstractWebElement;
 import org.openqa.selenium.WebElement;
 
 public class SE4Element implements AbstractWebElement {

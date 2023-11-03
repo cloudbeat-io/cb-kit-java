@@ -1,0 +1,6 @@
+<aspectj>
+    <aspects>
+        <aspect name="io.cloudbeat.common.aspect.CbStepAspect"/>
+        <aspect name="io.cloudbeat.common.aspect.AllureStepAspect"/>
+    </aspects>
+</aspectj>

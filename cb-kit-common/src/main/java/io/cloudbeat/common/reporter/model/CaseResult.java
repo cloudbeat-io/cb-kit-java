@@ -9,7 +9,7 @@ import io.cloudbeat.common.reporter.serializer.TestStatusSerializer;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class CaseResult {
+public class CaseResult implements IResultWithAttachment {
     String id;
     String name;
     String description;
@@ -21,13 +21,14 @@ public class CaseResult {
     @Nullable
     Long duration;
     String fqn;
-    ArrayList<String> args;
+    ArrayList<String> arguments;
     @JsonSerialize(using = TestStatusSerializer.class)
     TestStatus status;
     FailureResult failure;
     ArrayList<StepResult> hooks = new ArrayList<>();
     ArrayList<StepResult> steps = new ArrayList<>();
     ArrayList<LogMessage> logs = new ArrayList<>();
+    ArrayList<Attachment> attachments = new ArrayList<>();
 
     public CaseResult(String name) {
         this.id = UUID.randomUUID().toString();
@@ -122,8 +123,8 @@ public class CaseResult {
         return duration;
     }
 
-    public List<String> getArgs() {
-        return args;
+    public List<String> getArguments() {
+        return arguments;
     }
 
     public TestStatus getStatus() {
@@ -139,5 +140,16 @@ public class CaseResult {
     }
 
     public List<LogMessage> getLogs() { return logs; }
+
     public List<StepResult> getHooks() { return hooks; }
+
+    @Override
+    public void addAttachment(Attachment attachment) {
+        attachments.add(attachment);
+    }
+
+    @Override
+    public List<Attachment> getAttachments() {
+        return attachments;
+    }
 }

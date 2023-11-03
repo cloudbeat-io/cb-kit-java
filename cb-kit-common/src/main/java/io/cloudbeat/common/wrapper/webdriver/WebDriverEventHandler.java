@@ -1,5 +1,8 @@
-package io.cloudbeat.common.webdriver;
+package io.cloudbeat.common.wrapper.webdriver;
 
+import io.cloudbeat.common.har.model.HarEntry;
+import io.cloudbeat.common.har.model.HarLog;
+import io.cloudbeat.common.model.HttpNetworkEntry;
 import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.LogMessage;
 import io.cloudbeat.common.reporter.model.StepResult;
@@ -38,6 +41,8 @@ public class WebDriverEventHandler {
         isAndroid = platformName != null && platformName.equalsIgnoreCase("android");
         isChrome = isChrome(browserName);
         isPerformanceLoggingOn = isPerformanceLoggingOn();
+        if (wrapper.hasDevTools())
+            wrapper.enableDevToolsConsoleLogs();
     }
 
     private String getBrowserName() {
@@ -88,7 +93,14 @@ public class WebDriverEventHandler {
 
     
     public void beforeNavigateTo(final String url) {
-        wrapper.enableDevToolsPerformance();
+        try {
+            wrapper.enableDevToolsPerformance();
+        }
+        catch (Throwable ignore) {}
+        /*try {
+            wrapper.enableDevToolsNetworkCapturing();
+        }
+        catch (Throwable ignore) {}*/
         final StepResult step = reporter.startStep("Navigate to " + url);
         lastStepId = step != null ? step.getId() : null;
     }
@@ -109,14 +121,31 @@ public class WebDriverEventHandler {
         }
         catch (Throwable ignore) {}
 
+        /*try {
+            wrapper.disableDevToolsNetworkCapturing();
+        }
+        catch (Throwable ignore) {}*/
+
         // get browser or device logs
         final List<LogMessage> logs = collectLogs();
 
+        final HarLog harLog = collectNetworkLogs();
+
         //collectPerformanceData(webDriver);
 
-        reporter.passStep(lastStepId, stats, logs.size() == 0 ? null : logs);
+        StepResult stepResult = reporter.passStep(lastStepId, stats, logs.size() == 0 ? null : logs);
+        stepResult.addHarAttachment(harLog);
 
         lastStepId = null;
+    }
+
+    private HarLog collectNetworkLogs() {
+        try {
+            if (isWeb)
+                return wrapper.getHarLog();
+        }
+        catch (Exception ignore) {}
+        return null;
     }
 
     private void collectPerformanceData() {
@@ -208,10 +237,14 @@ public class WebDriverEventHandler {
 
         try {
             wrapper.addNavigationTimingStats(stats);
+            wrapper.addDevToolsPerformanceStats(stats);
+            wrapper.disableDevToolsPerformance();
         }
         catch (Throwable ignore) {}
+        // get browser or device logs
+        final List<LogMessage> logs = collectLogs();
 
-        reporter.passStep(lastStepId, stats);
+        reporter.passStep(lastStepId, stats, logs);
         lastStepId = null;
     }
 
@@ -263,11 +296,15 @@ public class WebDriverEventHandler {
 
     
     public void onException(final Throwable throwable) {
-        if (lastStepId != null) {
+        try {
             // try to take a screenshot
             String screenshot = wrapper.getScreenshot();
-            reporter.failStep(lastStepId, throwable, screenshot);
+            if (lastStepId != null)
+                reporter.failStep(lastStepId, throwable, screenshot);
+            else
+                reporter.setScreenshotOnException(screenshot);
         }
+        catch (Throwable e) {}
     }
     
     public void beforeGetText(final AbstractWebElement elm) {

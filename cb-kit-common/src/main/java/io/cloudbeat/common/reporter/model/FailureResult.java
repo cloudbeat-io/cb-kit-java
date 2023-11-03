@@ -1,7 +1,8 @@
 package io.cloudbeat.common.reporter.model;
 
 import io.cloudbeat.common.CbTestContext;
-import io.cloudbeat.common.Helper;
+import io.cloudbeat.common.helper.StackTraceHelper;
+import io.cloudbeat.common.helper.WebDriverHelper;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -29,11 +30,11 @@ public class FailureResult {
         String stackTrace = sw.toString();
         final String testPackageName = getTestPackageName();
         StackTraceElement[] filteredStackTrace =
-                Helper.getStackTraceStartingFromPackage(throwable.getStackTrace(), testPackageName);
+                StackTraceHelper.getStackTraceStartingFromPackage(throwable.getStackTrace(), testPackageName);
         this.subtype = throwable.getClass().getSimpleName();
         this.type = throwable.getClass().getSimpleName();
         this.data = stackTrace;
-        this.stacktrace = Helper.stackTraceToStringArray(filteredStackTrace);
+        this.stacktrace = StackTraceHelper.stackTraceToStringArray(filteredStackTrace);
         this.message = throwable.getMessage();
         if(this.message == null) {
             this.message = "UNKNOWN_ERROR ";

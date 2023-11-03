@@ -1,4 +1,4 @@
-package io.cloudbeat.common.webdriver;
+package io.cloudbeat.common.wrapper.webdriver;
 
 public interface AbstractWebElement {
     public String getText();

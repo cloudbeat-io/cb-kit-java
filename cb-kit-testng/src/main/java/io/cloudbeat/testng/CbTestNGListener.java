@@ -4,8 +4,13 @@ import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.StepResult;
+import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.testng.*;
 import org.testng.internal.IResultListener2;
+
+import javax.annotation.Nullable;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CbTestNGListener implements
@@ -15,7 +20,8 @@ public class CbTestNGListener implements
         IInvokedMethodListener {
     static boolean started = false;
     static CbTestContext ctx = CbTestContext.getInstance();
-
+    final ThreadLocal<Map<String, BeforeTestMethodHookInvocationDetails>> beforeMethodConfigMap
+            = ThreadLocal.withInitial(HashMap::new);
     public CbTestNGListener() {
 
     }
@@ -52,6 +58,21 @@ public class CbTestNGListener implements
         return ctx.wrapWebDriver(driver);
     }
 
+    public static <D> D wrapWebDriver(D driver, WrapperOptions options) {
+        return ctx.wrapWebDriver(driver, options);
+    }
+
+    public static <D, L> L getWebDriverListener(D driver) {
+        return ctx.getWebDriverListener(driver);
+    }
+    public static <D, L> L getWebDriverListener(D driver, WrapperOptions options) {
+        return ctx.getWebDriverListener(driver, options);
+    }
+
+    public static void wrapRestAssured() {
+        ctx.wrapRestAssured();
+    }
+
     public static String getEnv(String name) {
         if (ctx == null || ctx.getReporter() == null)
             return System.getenv(name);
@@ -70,6 +91,12 @@ public class CbTestNGListener implements
         }
 
         return CbConfig.DEFAULT_WEBDRIVER_URL;
+    }
+
+    public static void attachScreencastFile(final String videoFilePath) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreencastAttachment(videoFilePath, false);
     }
 
     @Override
@@ -113,7 +140,24 @@ public class CbTestNGListener implements
             return;
         try {
             ctx.setCurrentTestClass(testResult.getTestClass().getRealClass());
-            TestNGReporterHelper.startTestMethod(ctx.getReporter(), testResult);
+            CbTestNGReporter.startTestMethod(ctx.getReporter(), testResult);
+            // check if we have pending "before method" hooks, if yes - append them to the test case
+            if (!beforeMethodConfigMap.get().isEmpty()) {
+                beforeMethodConfigMap.get().entrySet().forEach(entry -> {
+                    BeforeTestMethodHookInvocationDetails hookInvocationDetails = entry.getValue();
+                    CbTestNGReporter.startMethodHook(
+                            ctx.getReporter(),
+                            hookInvocationDetails.getTestMethod(),
+                            true,
+                            hookInvocationDetails.getStartTime());
+                    CbTestNGReporter.endMethodHook(
+                            ctx.getReporter(),
+                            hookInvocationDetails.getTestMethod(),
+                            hookInvocationDetails.getTestResult(),
+                            hookInvocationDetails.getEndTime());
+                });
+                beforeMethodConfigMap.remove();
+            }
         }
         catch (Exception e) {
             System.err.println("Error in onTestStart: " + e.toString());
@@ -125,7 +169,7 @@ public class CbTestNGListener implements
         if (!ctx.isActive())
             return;
         try {
-            TestNGReporterHelper.endTestMethod(ctx.getReporter(), testResult);
+            CbTestNGReporter.endTestMethod(ctx.getReporter(), testResult);
             ctx.setCurrentTestClass(null);
         }
         catch (Exception e) {
@@ -138,7 +182,7 @@ public class CbTestNGListener implements
         if (!ctx.isActive())
             return;
         try {
-            TestNGReporterHelper.failTestMethod(ctx.getReporter(), testResult);
+            CbTestNGReporter.failTestMethod(ctx.getReporter(), testResult);
             ctx.setCurrentTestClass(null);
         }
         catch (Exception e) {
@@ -151,7 +195,7 @@ public class CbTestNGListener implements
         if (!ctx.isActive())
             return;
         try {
-            TestNGReporterHelper.skipTestMethod(ctx.getReporter(), testResult);
+            CbTestNGReporter.skipTestMethod(ctx.getReporter(), testResult);
             ctx.setCurrentTestClass(null);
         }
         catch (Exception e) {
@@ -167,13 +211,13 @@ public class CbTestNGListener implements
     @Override
     public void onStart(ISuite suite) {
         if (ctx.isActive())
-            TestNGReporterHelper.startSuite(ctx.getReporter(), suite);
+            CbTestNGReporter.startSuite(ctx.getReporter(), suite);
     }
 
     @Override
     public void onFinish(ISuite suite) {
         if (ctx.isActive())
-            TestNGReporterHelper.endSuite(ctx.getReporter(), suite);
+            CbTestNGReporter.endSuite(ctx.getReporter(), suite);
     }
 
     @Override
@@ -191,15 +235,22 @@ public class CbTestNGListener implements
         if (!ctx.isActive() || started)
             return;
         started = true;
+        String wrapConsolePropVal = System.getProperty("CB_WRAP_CONSOLE", null);
+        boolean wrapConsole;
+        if (wrapConsolePropVal == null)
+            wrapConsole = true;
+        else
+            wrapConsole = !wrapConsolePropVal.equalsIgnoreCase("false");
+
         ctx.getReporter().setFramework("TestNG", null);
-        TestNGReporterHelper.startInstance(ctx.getReporter());
+        CbTestNGReporter.startInstance(ctx.getReporter(), wrapConsole);
     }
 
     private void shutdown() throws Throwable {
         if (!ctx.isActive() || !started)
             return;
         started = false;
-        TestNGReporterHelper.endInstance(ctx.getReporter());
+        CbTestNGReporter.endInstance(ctx.getReporter());
     }
 
     @Override
@@ -210,7 +261,17 @@ public class CbTestNGListener implements
             return;
         ITestNGMethod testMethod = method.getTestMethod();
         if (testMethod.isBeforeClassConfiguration())
-            TestNGReporterHelper.startBeforeClassHook(ctx.getReporter(), testMethod);
+            CbTestNGReporter.startClassHook(ctx.getReporter(), testMethod, true);
+        else if (testMethod.isAfterClassConfiguration())
+            CbTestNGReporter.startClassHook(ctx.getReporter(), testMethod, false);
+        else if (testMethod.isBeforeMethodConfiguration()) {
+            // save method details for later use when onTestStart will be called
+            BeforeTestMethodHookInvocationDetails hookInvocationDetails = new BeforeTestMethodHookInvocationDetails();
+            hookInvocationDetails.start(testMethod);
+            beforeMethodConfigMap.get().put(testMethod.getQualifiedName(), hookInvocationDetails);
+        }
+        else if (testMethod.isAfterMethodConfiguration())
+            CbTestNGReporter.startMethodHook(ctx.getReporter(), testMethod, false);
     }
 
     @Override
@@ -220,7 +281,53 @@ public class CbTestNGListener implements
         if (!method.isConfigurationMethod())
             return;
         ITestNGMethod testMethod = method.getTestMethod();
-        if (testMethod.isBeforeClassConfiguration())
-            TestNGReporterHelper.endBeforeClassHook(ctx.getReporter(), testMethod);
+        if (testMethod.isBeforeClassConfiguration() || testMethod.isAfterClassConfiguration())
+            CbTestNGReporter.endClassHook(ctx.getReporter(), testMethod, testResult);
+        else if (testMethod.isBeforeMethodConfiguration()) {
+            if (beforeMethodConfigMap.get().containsKey(testMethod.getQualifiedName()))
+                beforeMethodConfigMap.get().get(testMethod.getQualifiedName()).end(testResult);
+        }
+        else if (testMethod.isAfterMethodConfiguration())
+            CbTestNGReporter.endMethodHook(ctx.getReporter(), testMethod, testResult);
+    }
+
+    class BeforeTestMethodHookInvocationDetails {
+        @Nullable
+        ITestNGMethod testMethod;
+        @Nullable
+        ITestResult testResult;
+        @Nullable
+        Long startTime;
+        @Nullable
+        Long endTime;
+
+        public void start(@Nullable ITestNGMethod testMethod) {
+            this.testMethod = testMethod;
+            this.startTime = Calendar.getInstance().getTimeInMillis();
+        }
+
+        public void end(@Nullable ITestResult testResult) {
+            this.testResult = testResult;
+            this.endTime = Calendar.getInstance().getTimeInMillis();
+        }
+        @Nullable
+        public ITestNGMethod getTestMethod() {
+            return testMethod;
+        }
+
+        @Nullable
+        public ITestResult getTestResult() {
+            return testResult;
+        }
+
+        @Nullable
+        public Long getStartTime() {
+            return startTime;
+        }
+
+        @Nullable
+        public Long getEndTime() {
+            return endTime;
+        }
     }
 }

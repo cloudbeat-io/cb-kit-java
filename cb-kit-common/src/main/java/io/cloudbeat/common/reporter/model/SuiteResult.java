@@ -9,7 +9,7 @@ import io.cloudbeat.common.reporter.serializer.TestStatusSerializer;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class SuiteResult {
+public class SuiteResult implements IResultWithAttachment {
     String id;
     String name;
     @JsonSerialize(using = EpochTimeSerializer.class)
@@ -27,6 +27,8 @@ public class SuiteResult {
     ArrayList<CaseResult> cases = new ArrayList<>();
     ArrayList<LogMessage> logs = new ArrayList<>();
 
+    ArrayList<Attachment> attachments = new ArrayList<>();
+
     public SuiteResult(String name) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -42,8 +44,13 @@ public class SuiteResult {
         if (hasFailedCases)
             this.status = TestStatus.FAILED;
         else {
-            boolean hasAllSkippedCases = cases.stream().allMatch(x -> x.status == TestStatus.SKIPPED);
-            this.status = hasAllSkippedCases ? TestStatus.SKIPPED : TestStatus.PASSED;
+            boolean hasFailedHooks = hooks.stream().anyMatch(x -> x.status == TestStatus.FAILED);
+            if (hasFailedHooks)
+                this.status = TestStatus.FAILED;
+            else {
+                boolean hasAllSkippedCases = cases.stream().allMatch(x -> x.status == TestStatus.SKIPPED);
+                this.status = hasAllSkippedCases ? TestStatus.SKIPPED : TestStatus.PASSED;
+            }
         }
     }
 
@@ -115,5 +122,16 @@ public class SuiteResult {
     }
 
     public List<LogMessage> getLogs() { return logs; }
+
     public List<StepResult> getHooks() { return hooks; }
+
+    @Override
+    public void addAttachment(Attachment attachment) {
+        attachments.add(attachment);
+    }
+
+    @Override
+    public List<Attachment> getAttachments() {
+        return attachments;
+    }
 }

@@ -2,6 +2,8 @@ package io.cloudbeat.junit;
 
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.reporter.CbTestReporter;
+import io.cloudbeat.common.reporter.model.CaseResult;
+import io.cloudbeat.common.reporter.model.StepResult;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.util.Optional;
@@ -45,8 +47,7 @@ public class JunitReporterUtils {
         final String classFqn = context.getTestClass().get().getName();
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
-        //CbTestReporter reporter = CbTestContext.getReporter();
-        reporter.startCase(methodName, methodFqn, classFqn);
+        reporter.startCase(methodName, methodFqn);
     }
 
     public static void endCase(CbTestReporter reporter, ExtensionContext context) throws Exception {
@@ -65,44 +66,66 @@ public class JunitReporterUtils {
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
         //CbTestReporter reporter = CbTestContext.getReporter();
-        reporter.startCase(methodName, methodFqn, classFqn);
+        reporter.startCase(methodName, methodFqn);
         reporter.skipCase(methodFqn);
     }
     public static void failedCase(
             CbTestReporter reporter,
             ExtensionContext context,
             Throwable throwable
-    ) throws Exception{
+    ) throws Exception {
         final String classFqn = context.getTestClass().get().getName();
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
 
-        // failed case can be either called be after method hook or by testFailed method
-        // if it was called by "after method hook", then we should already have a case started
-        if (reporter.getLastStep() != null
-                && reporter.getLastStep().getFqn() != null
-                && reporter.getLastStep().getFqn().equals(methodFqn)
-        ) {
-            reporter.failStep(methodFqn, throwable);
+        if (reporter.getStartedCase() == null) {
+            CaseResult startedCase = reporter.startCase(methodName, methodFqn);
+            // startedCase.setStartTime( <set the same start time as the parent suite> );
         }
-        // otherwise, start and end case with failure
-        /*else if (reporter.getLastCase() != null
-                && reporter.getLastCase().getFqn() != null
-                && reporter.getLastCase().getFqn().equals(methodFqn)
-        ) {
-            reporter.failCase(methodFqn, throwable);
+
+        reporter.endCase(methodFqn, throwable);
+    }
+    public static void startCaseHook(CbTestReporter reporter, ExtensionContext context, boolean isBefore) {
+        startCaseHook(reporter, context, isBefore,null);
+    }
+    public static void startCaseHook(CbTestReporter reporter, String hookName, String hookFqn, boolean isBefore, Long startTime) {
+        StepResult hookResult = reporter.startCaseHook(hookName, hookFqn, isBefore);
+        if (startTime != null)
+            hookResult.setStartTime(startTime);
+    }
+    public static void startCaseHook(CbTestReporter reporter, ExtensionContext context, boolean isBefore, Long startTime) {
+        final String classFqn = context.getTestClass().get().getName();
+        final String methodName = context.getTestMethod().get().getName();
+        final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
+        StepResult hookResult = reporter.startCaseHook(methodName, methodFqn, isBefore);
+        if (startTime != null)
+            hookResult.setStartTime(startTime);
+    }
+
+    public static void endCaseHook(CbTestReporter reporter, ExtensionContext context) {
+        endCaseHook(reporter, context, null);
+    }
+    public static void endCaseHook(CbTestReporter reporter, String hookFqn, Throwable throwable, Long endTime) {
+        StepResult hookResult = reporter.endCaseHook(hookFqn, throwable);
+        if (endTime != null) {
+            hookResult.setEndTime(endTime);
+            hookResult.setDuration(hookResult.getEndTime() - hookResult.getStartTime());
         }
-        else {
-            reporter.startCase(methodName, methodFqn, classFqn);
-            reporter.failCase(methodFqn, throwable);
-        }*/
+    }
+    public static void endCaseHook(CbTestReporter reporter, ExtensionContext context, Long endTime) {
+        final String classFqn = context.getTestClass().get().getName();
+        final String methodName = context.getTestMethod().get().getName();
+        final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
+        StepResult hookResult = reporter.endCaseHook(methodFqn, context.getExecutionException().orElse(null));
+        if (endTime != null) {
+            hookResult.setEndTime(endTime);
+            hookResult.setDuration(hookResult.getEndTime() - hookResult.getStartTime());
+        }
     }
 
-    public static void startBeforeEachHook(CbTestReporter reporter, ExtensionContext context) {
+    public static String getTestMethodFqn(ExtensionContext context) {
+        final String classFqn = context.getTestClass().get().getName();
+        final String methodName = context.getTestMethod().get().getName();
+        return String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
     }
-
-    public static void endBeforeEachHook(CbTestReporter reporter, ExtensionContext context) {
-    }
-
-
 }

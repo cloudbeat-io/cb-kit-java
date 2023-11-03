@@ -1,8 +1,9 @@
 package io.cloudbeat.selenium;
 
-import io.cloudbeat.common.webdriver.AbstractLocator;
-import io.cloudbeat.common.webdriver.AbstractWebElement;
-import io.cloudbeat.common.webdriver.WebDriverEventHandler;
+import io.cloudbeat.common.wrapper.webdriver.AbstractLocator;
+import io.cloudbeat.common.wrapper.webdriver.AbstractWebElement;
+import io.cloudbeat.common.wrapper.webdriver.WebDriverEventHandler;
+import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -21,8 +22,10 @@ import java.util.Set;
 
 public class CbWebDriverListener implements WebDriverListener {
     private final WebDriverEventHandler eventHandler;
-    public CbWebDriverListener(WebDriverEventHandler eventHandler) {
+    private final WrapperOptions options;
+    public CbWebDriverListener(WebDriverEventHandler eventHandler, WrapperOptions options) {
         this.eventHandler = eventHandler;
+        this.options = options != null ? options : new WrapperOptions();
     }
 
     @Override
@@ -44,22 +47,34 @@ public class CbWebDriverListener implements WebDriverListener {
 
     @Override
     public void beforeFindElement(WebDriver driver, By locator) {
-        eventHandler.beforeFindElement(wrapLocator(locator));
+        if (!options.isIgnoreFindElement())
+            eventHandler.beforeFindElement(wrapLocator(locator));
+        else
+            WebDriverListener.super.beforeFindElement(driver, locator);
     }
 
     @Override
     public void afterFindElement(WebDriver driver, By locator, WebElement element) {
-        eventHandler.afterFindElement(wrapLocator(locator), wrapElement(element));
+        if (!options.isIgnoreFindElement())
+            eventHandler.afterFindElement(wrapLocator(locator), wrapElement(element));
+        else
+            WebDriverListener.super.afterFindElement(driver, locator, element);
     }
 
     @Override
     public void beforeFindElements(WebDriver driver, By locator) {
-        eventHandler.beforeFindElements(wrapLocator(locator));
+        if (!options.isIgnoreFindElements())
+            eventHandler.beforeFindElements(wrapLocator(locator));
+        else
+            WebDriverListener.super.beforeFindElements(driver, locator);
     }
 
     @Override
     public void afterFindElements(WebDriver driver, By locator, List<WebElement> elements) {
-        eventHandler.afterFindElements(wrapLocator(locator), wrapElements(elements));
+        if (!options.isIgnoreFindElements())
+            eventHandler.afterFindElements(wrapLocator(locator), wrapElements(elements));
+        else
+            WebDriverListener.super.afterFindElements(driver, locator, elements);
     }
 
     @Override

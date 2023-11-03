@@ -1,5 +1,7 @@
 package io.cloudbeat.common.reporter.model.extra.hook;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum HookType {
     BEFORE("before"),
     AFTER("after");
@@ -10,12 +12,13 @@ public enum HookType {
         value = v;
     }
 
-    public String value() {
+    @JsonValue
+    public String getValue() {
         return value;
     }
 
     @Override
     public String toString() {
-        return value();
+        return value;
     }
 }

@@ -1,22 +1,16 @@
 package io.cloudbeat.junit;
 
-import java.io.Console;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.*;
 
 import io.cloudbeat.common.CbTestContext;
-import io.cloudbeat.common.Helper;
 import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.StepResult;
-import io.cloudbeat.common.restassured.CbRestAssuredFilter;
-import io.cloudbeat.common.restassured.RestAssuredFailureListener;
 
 import org.junit.jupiter.api.extension.*;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Method;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 
@@ -29,10 +23,13 @@ public class CbJunitExtension implements
         AfterEachCallback,
         AfterAllCallback,
         ExtensionContext.Store.CloseableResource,
-        TestWatcher
+        TestWatcher,
+        InvocationInterceptor
 {
     static boolean started = false;
     static CbTestContext ctx = CbTestContext.getInstance();
+    final ThreadLocal<Map<String, BeforeTestMethodHookInvocationDetails>> beforeMethodHookInvocationMap
+            = ThreadLocal.withInitial(HashMap::new);
 
     public CbJunitExtension() {
 
@@ -64,6 +61,35 @@ public class CbJunitExtension implements
         return CbConfig.DEFAULT_WEBDRIVER_URL;
     }
 
+    public static void logInfo(final String message) {
+        if (ctx == null || ctx.getReporter() == null) {
+            System.out.println(message);
+            return;
+        }
+        ctx.getReporter().logInfo(message);
+    }
+
+    public static void logWarning(final String message) {
+        if (ctx == null || ctx.getReporter() == null) {
+            System.out.println(message);
+            return;
+        }
+        ctx.getReporter().logWarning(message);
+    }
+
+    public static void logError(final String message) {
+        logError(message, null);
+    }
+    public static void logError(final String message, Throwable throwable) {
+        if (ctx == null || ctx.getReporter() == null || message == null) {
+            System.err.println(message);
+            if (throwable != null)
+                System.err.println(throwable);
+            return;
+        }
+        ctx.getReporter().logError(message, throwable);
+    }
+
     @Override
     public synchronized void beforeAll(ExtensionContext context) {
         if (!started) {
@@ -77,7 +103,67 @@ public class CbJunitExtension implements
         if (ctx.isActive())
             JunitReporterUtils.startSuite(ctx.getReporter(), context);
     }
+    @Override
+    public void interceptBeforeEachMethod(
+            final Invocation<Void> invocation,
+            final ReflectiveInvocationContext<Method> invocationContext,
+            final ExtensionContext extensionContext) throws Throwable {
+        if (ctx.isActive()) {
+            final String testMethodFqn = JunitReporterUtils.getTestMethodFqn(extensionContext);
+            final String hookClassFqn = invocationContext.getExecutable().getDeclaringClass().getName();
+            final String hookName = invocationContext.getExecutable().getName();
+            final String hookFqn = String.format(JunitReporterUtils.JAVA_METHOD_FQN_FORMAT, hookClassFqn, hookName);
+            BeforeTestMethodHookInvocationDetails hookInvocationDetails = new BeforeTestMethodHookInvocationDetails();
+            hookInvocationDetails.start(hookName, hookFqn, extensionContext);
+            beforeMethodHookInvocationMap.get().put(testMethodFqn, hookInvocationDetails);
+            try {
+                invocation.proceed();
+            }
+            catch (Throwable e) {
+                hookInvocationDetails.end(e);
+                throw e;
+            }
+            hookInvocationDetails.end();
+        }
+        else
+            invocation.proceed();
+    }
 
+    @Override
+    public void interceptAfterEachMethod(
+            final Invocation<Void> invocation,
+            final ReflectiveInvocationContext<Method> invocationContext,
+            final ExtensionContext extensionContext) throws Throwable {
+        if (ctx.isActive()) {
+            final String hookClassFqn = invocationContext.getExecutable().getDeclaringClass().getName();
+            final String hookName = invocationContext.getExecutable().getName();
+            final String hookFqn = String.format(JunitReporterUtils.JAVA_METHOD_FQN_FORMAT, hookClassFqn, hookName);
+            JunitReporterUtils.startCaseHook(
+                ctx.getReporter(),
+                hookName,
+                hookFqn,
+                false,
+                null);
+            try {
+                invocation.proceed();
+            }
+            catch (Throwable e) {
+                JunitReporterUtils.endCaseHook(
+                    ctx.getReporter(),
+                    hookFqn,
+                    e,
+                    null);
+                throw e;
+            }
+            JunitReporterUtils.endCaseHook(
+                ctx.getReporter(),
+                hookFqn,
+                null,
+                null);
+        }
+        else
+            invocation.proceed();
+    }
     @Override
     public void afterAll(ExtensionContext context) {
         if (ctx.isActive())
@@ -86,14 +172,10 @@ public class CbJunitExtension implements
 
     @Override
     public void beforeEach(ExtensionContext context) {
-        if (ctx.isActive())
-            JunitReporterUtils.startBeforeEachHook(ctx.getReporter(), context);
     }
 
     @Override
     public void afterEach(ExtensionContext context) {
-        if (ctx.isActive())
-            JunitReporterUtils.endBeforeEachHook(ctx.getReporter(), context);
     }
 
     @Override
@@ -103,6 +185,8 @@ public class CbJunitExtension implements
         try {
             ctx.setCurrentTestClass(context.getTestClass().orElse(null));
             JunitReporterUtils.startCase(ctx.getReporter(), context);
+            // if there are pending "beforeEach" invocations, append them to the test case
+            addPendingBeforeHooks();
         }
         catch (Exception e) {
             System.err.println("Error in beforeTestExecution: " + e.toString());
@@ -148,6 +232,7 @@ public class CbJunitExtension implements
             return;
         try {
             JunitReporterUtils.failedCase(ctx.getReporter(), context, throwable);
+            addPendingBeforeHooks();
             ctx.setCurrentTestClass(null);
         }
         catch (Throwable e) {
@@ -188,8 +273,10 @@ public class CbJunitExtension implements
 
     public static void step(final String name, Runnable stepFunc) {
         CbTestReporter reporter = getReporter();
-        if (reporter == null)
+        if (reporter == null) {
+            stepFunc.run();
             return;
+        }
         reporter.step(name, stepFunc);
     }
 
@@ -197,5 +284,81 @@ public class CbJunitExtension implements
         if (CbJunitExtension.ctx == null)
             return null;
         return CbJunitExtension.ctx.getReporter();
+    }
+
+    private void addPendingBeforeHooks() {
+        beforeMethodHookInvocationMap.get().entrySet().forEach(entry -> {
+            BeforeTestMethodHookInvocationDetails hookInvocationDetails = entry.getValue();
+            JunitReporterUtils.startCaseHook(
+                    ctx.getReporter(),
+                    hookInvocationDetails.getHookName(),
+                    hookInvocationDetails.getHookFqn(),
+                    true,
+                    hookInvocationDetails.getStartTime());
+            JunitReporterUtils.endCaseHook(
+                    ctx.getReporter(),
+                    hookInvocationDetails.getHookFqn(),
+                    hookInvocationDetails.getThrowable(),
+                    hookInvocationDetails.getEndTime());
+        });
+        beforeMethodHookInvocationMap.remove();
+    }
+
+    class BeforeTestMethodHookInvocationDetails {
+        @Nullable
+        Throwable throwable;
+        @Nullable
+        ExtensionContext context;
+        @Nullable
+        String hookName;
+        @Nullable
+        String hookFqn;
+        @Nullable
+        Long startTime;
+        @Nullable
+        Long endTime;
+
+        public void start(String hookName, String hookFqn, ExtensionContext context) {
+            this.context = context;
+            this.hookName = hookName;
+            this.hookFqn = hookFqn;
+            this.startTime = Calendar.getInstance().getTimeInMillis();
+        }
+        public void end(Throwable throwable) {
+            this.throwable = throwable;
+            this.endTime = Calendar.getInstance().getTimeInMillis();
+        }
+        public void end() {
+            end(null);
+        }
+        @Nullable
+        public ExtensionContext getContext() {
+            return context;
+        }
+
+        @Nullable
+        public Long getStartTime() {
+            return startTime;
+        }
+
+        @Nullable
+        public Long getEndTime() {
+            return endTime;
+        }
+
+        @Nullable
+        public String getHookName() {
+            return hookName;
+        }
+
+        @Nullable
+        public String getHookFqn() {
+            return hookFqn;
+        }
+
+        @Nullable
+        public Throwable getThrowable() {
+            return throwable;
+        }
     }
 }

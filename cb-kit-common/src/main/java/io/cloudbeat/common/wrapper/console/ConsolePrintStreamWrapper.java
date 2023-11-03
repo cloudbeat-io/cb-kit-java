@@ -1,14 +1,22 @@
-package io.cloudbeat.common;
+package io.cloudbeat.common.wrapper.console;
 
+import io.cloudbeat.common.reporter.CbTestReporter;
+import io.cloudbeat.common.reporter.model.LogLevel;
+import io.cloudbeat.common.reporter.model.LogMessage;
+import io.cloudbeat.common.reporter.model.LogSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.Locale;
 
-public class ConsoleOutputWrapper extends PrintStream {
-    public ConsoleOutputWrapper() throws FileNotFoundException {
-        super(new FileOutputStream("NUL:"));
+class ConsolePrintStreamWrapper extends PrintStream {
+    final CbTestReporter reporter;
+    final LogLevel logLevel;
+    public ConsolePrintStreamWrapper(PrintStream stream, CbTestReporter reporter, LogLevel logLevel) throws FileNotFoundException {
+        super(stream);
+        this.reporter = reporter;
+        this.logLevel = logLevel;
     }
 
     @Override
@@ -134,11 +142,23 @@ public class ConsoleOutputWrapper extends PrintStream {
     @Override
     public void println(@Nullable String x) {
         super.println(x);
+        if (reporter == null || x == null) return;
+        LogMessage logMessage = new LogMessage();
+        logMessage.setMessage(x);
+        logMessage.setLevel(logLevel);
+        logMessage.setSrc(LogSource.USER);
+        reporter.logMessage(logMessage);
     }
 
     @Override
     public void println(@Nullable Object x) {
         super.println(x);
+        if (reporter == null || x == null) return;
+        LogMessage logMessage = new LogMessage();
+        logMessage.setMessage(x.toString());
+        logMessage.setLevel(logLevel);
+        logMessage.setSrc(LogSource.USER);
+        reporter.logMessage(logMessage);
     }
 
     @Override

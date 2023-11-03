@@ -1,4 +1,4 @@
-package io.cloudbeat.common.restassured;
+package io.cloudbeat.common.wrapper.restassured;
 
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.reporter.model.StepResult;
@@ -36,7 +36,7 @@ public class CbRestAssuredFilter implements OrderedFilter {
         // get a response
         final Response response = filterContext.next(requestSpec, responseSpec);
         // add request and response properties to "extra"
-        stepResult.addExtra(StepType.HTTP.value(), generateHttpExtra(requestSpec, response));
+        stepResult.addExtra(StepType.HTTP.getValue(), generateHttpExtra(requestSpec, response));
         // end step
         ctx.getReporter().endStep(stepResult.getId());
         return response;
