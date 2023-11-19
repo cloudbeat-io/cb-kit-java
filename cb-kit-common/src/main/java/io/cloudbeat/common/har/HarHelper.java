@@ -62,6 +62,6 @@ public final class HarHelper {
     }
 
     public static void writeHarFile(final HarLog harLog, final File file) throws IOException {
-        OBJECT_MAPPER.writeValue(file, harLog);
+        OBJECT_MAPPER.writeValue(file, new Har(harLog));
     }
 }

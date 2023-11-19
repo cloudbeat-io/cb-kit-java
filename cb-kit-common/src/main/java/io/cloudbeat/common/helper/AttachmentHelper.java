@@ -34,7 +34,7 @@ public final class AttachmentHelper {
     }
     public static Attachment prepareHarAttachment(final HarLog harLog) {
         Attachment attachment = new Attachment(AttachmentType.NETWORK, AttachmentSubType.NETWORK_HAR);
-        final String fileExtension = "json";
+        final String fileExtension = "har";
         Path harFilePath = getAttachmentFilePath(attachment, fileExtension);
         if (harFilePath == null) return  null;
         try {

@@ -2,10 +2,7 @@ package io.cloudbeat.selenium;
 
 import com.google.common.collect.ImmutableMap;
 import io.cloudbeat.common.har.HarHelper;
-import io.cloudbeat.common.har.model.HarEntry;
-import io.cloudbeat.common.har.model.HarLog;
-import io.cloudbeat.common.har.model.HarTiming;
-import io.cloudbeat.common.har.model.HttpMethod;
+import io.cloudbeat.common.har.model.*;
 import io.cloudbeat.common.reporter.model.LogMessage;
 import io.cloudbeat.common.reporter.model.LogSource;
 import io.cloudbeat.common.wrapper.webdriver.AbstractWebDriver;
@@ -257,8 +254,11 @@ public class Selenium4WebDriver implements AbstractWebDriver {
                             harEntry.getRequest().setMethod(HttpMethod.valueOf(cdpNetEntry.getRequest().getMethod().toUpperCase()));
                             harEntry.setStartedDateTime(new Date(startTimeInMs));
                             harEntry.setAdditionalField("startTimestamp", cdpNetEntry.getTimestamp().toJson());
-                            if (cdpNetEntry.getRequest().getHasPostData().orElse(false) && cdpNetEntry.getRequest().getPostData().isPresent())
+                            if (cdpNetEntry.getRequest().getHasPostData().orElse(false) && cdpNetEntry.getRequest().getPostData().isPresent()) {
+                                if (harEntry.getRequest().getPostData() == null)
+                                    harEntry.getRequest().setPostData(new HarPostData());
                                 harEntry.getRequest().getPostData().setText(cdpNetEntry.getRequest().getPostData().orElse(null));
+                            }
                             harEntry.getRequest().setQueryString(HarHelper.getHarQueryParamList(cdpNetEntry.getRequest().getUrl()));
                             harEntry.getRequest().setHeaders(HarHelper.getHarHeaderList(cdpNetEntry.getRequest().getHeaders().toJson()));
                             System.out.println("Request URI : " + cdpNetEntry.getRequest().getUrl() + "\n"

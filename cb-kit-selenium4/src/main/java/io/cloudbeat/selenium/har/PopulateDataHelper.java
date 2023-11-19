@@ -1,6 +1,7 @@
 package io.cloudbeat.selenium.har;
 
 import io.cloudbeat.common.har.model.*;
+import org.apache.http.HttpStatus;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -152,9 +153,12 @@ public final class PopulateDataHelper {
         harResponse.setHttpVersion(protocol);
         if (locationHeaderValue != null && locationHeaderValue.length() > 0)
             harResponse.setRedirectURL(locationHeaderValue);
+        if (statusText == null || statusText.length() == 0)
+            statusText = org.apache.commons.httpclient.HttpStatus.getStatusText(status);
         harResponse.setStatusText(statusText);
         harResponse.setStatus(status);
         harResponse.getContent().setMimeType(mimeType);
+        harResponse.getContent().setSize(0L);
         harResponse.getContent().setEncoding(encoding);
         if (cookieHeaderValue != null && cookieHeaderValue.length() > 0)
             harResponse.setCookies(HarHelper.getHarCookieListFromCookieHeader(cookieHeaderValue));
@@ -229,6 +233,8 @@ public final class PopulateDataHelper {
                 params.getJSONObject("headers") : null;
         JSONArray blockedCookies = params.has("blockedCookies") ?
                 params.getJSONArray("blockedCookies") : null;
+        String altSvcHeader = headers.has("alt-svc")
+                ? headers.getString("alt-svc") : null;
 
         Optional<HarEntry> harEntryByRequestId = harLog.getEntries()
                 .stream()
@@ -244,6 +250,9 @@ public final class PopulateDataHelper {
                     .findFirst();
         if (!harEntryByRequestId.isPresent())
             return;
+        if (altSvcHeader != null && altSvcHeader.startsWith("h3")
+                && harEntryByRequestId.get().getRequest().getHttpVersion() == null)
+            harEntryByRequestId.get().getRequest().setHttpVersion("h3");
         List<HarHeader> harHeaders = headers != null ? HarHelper.getHarHeaderListFromHeaders(headers) : null;
         if (harEntryByRequestId.get().getResponse().getStatus() != null &&  harHeaders != null) {
             harEntryByRequestId.get().getResponse().getHeaders().clear();
