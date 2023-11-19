@@ -8,6 +8,7 @@ import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class PerformanceLogsToHar {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -205,6 +206,12 @@ public final class PerformanceLogsToHar {
                 System.out.println(e.getMessage());
             }
         }
+        // filter out all entries that are missing the required data
+        harLog.setEntries(
+                harLog.getEntries().stream()
+                .filter(e -> e.getRequest().getHttpVersion() != null)
+                .collect(Collectors.toList())
+        );
         return harLog;
     }
     private static Optional<HarPage> getParentPageByFrameId(

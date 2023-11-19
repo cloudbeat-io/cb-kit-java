@@ -112,9 +112,9 @@ public class HarRequest {
      * @return Posted data info.
      */
     public HarPostData getPostData() {
-        if (postData == null) {
+        /*if (postData == null) {
             postData = new HarPostData();
-        }
+        }*/
         return postData;
     }
 
