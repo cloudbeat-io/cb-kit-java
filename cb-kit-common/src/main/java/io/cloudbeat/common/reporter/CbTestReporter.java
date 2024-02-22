@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 
 public class CbTestReporter {
     //private static final Logger LOGGER = LoggerFactory.getLogger(CbTestReporter.class);
-    private final static String TEST_RESULTS_FILENAME = ".CB_TEST_RESULTS";
+    private final static String TEST_RESULTS_FILENAME = ".CB_TEST_RESULTS.json";
     private final String language = "java";
 
     private CbHttpClient cbClient;
