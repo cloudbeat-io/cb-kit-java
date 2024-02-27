@@ -1,112 +1,32 @@
-package io.cloudbeat.testng;
+package io.cloudbeat.qaf.testng;
 
 import io.cloudbeat.common.CbTestContext;
-import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.reporter.CbTestReporter;
-import io.cloudbeat.common.reporter.model.StepResult;
-import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.testng.*;
-import org.testng.internal.IResultListener2;
 
 import javax.annotation.Nullable;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CbTestNGListener implements
+public class CbTestListener implements
         IExecutionListener,
         ISuiteListener,
-        IResultListener2,
+        //IResultListener2,
+        ITestListener,
         IInvokedMethodListener {
     static boolean started = false;
     static CbTestContext ctx = CbTestContext.getInstance();
     final ThreadLocal<Map<String, BeforeTestMethodHookInvocationDetails>> beforeMethodConfigMap
             = ThreadLocal.withInitial(HashMap::new);
-    public CbTestNGListener() {
+    public CbTestListener() {
 
     }
 
     private static CbTestReporter getReporter() {
-        if (CbTestNGListener.ctx == null)
+        if (CbTestListener.ctx == null)
             return null;
-        return CbTestNGListener.ctx.getReporter();
-    }
-
-    public static void step(final String name, Runnable stepFunc) {
-        CbTestReporter reporter = getReporter();
-        if (reporter == null)
-            return;
-        reporter.step(name, stepFunc);
-    }
-
-    public static String startStep(final String name) {
-        CbTestReporter reporter = getReporter();
-        if (reporter == null)
-            return null;
-        final StepResult step = reporter.startStep(name);
-        return step != null ? step.getId() : null;
-    }
-
-    public static void endLastStep() {
-        CbTestReporter reporter = getReporter();
-        if (reporter == null)
-            return;
-        reporter.endLastStep();
-    }
-
-    public static <D> D wrapWebDriver(D driver) {
-        return ctx.wrapWebDriver(driver);
-    }
-
-    public static <D> D wrapWebDriver(D driver, WrapperOptions options) {
-        return ctx.wrapWebDriver(driver, options);
-    }
-
-    public static <D, L> L getWebDriverListener(D driver) {
-        return ctx.getWebDriverListener(driver);
-    }
-    public static <D, L> L getWebDriverListener(D driver, WrapperOptions options) {
-        return ctx.getWebDriverListener(driver, options);
-    }
-
-    public static void wrapRestAssured() {
-        ctx.wrapRestAssured();
-    }
-
-    public static String getEnv(String name) {
-        if (ctx == null || ctx.getReporter() == null)
-            return System.getenv(name);
-        Map<String, String> cbEnvVars = ctx.getConfig().getEnvironmentVariables();
-        if (cbEnvVars != null && cbEnvVars.containsKey(name))
-            return cbEnvVars.get(name);
-        return System.getenv(name);
-    }
-
-    public static Map<String, Object> getCapabilities(Map<String, Object> defaultCapabilities) {
-        if (ctx == null || ctx.getConfig() == null)
-            return defaultCapabilities;
-        return ctx.getConfig().getCapabilities();
-    }
-
-    public static Map<String, Object> getCapabilities() {
-        return getCapabilities(null);
-    }
-
-    public static String getWebDriverUrl() {
-        CbConfig config = CbTestContext.getInstance().getConfig();
-
-        if (config != null) {
-            String remoteUrl =  config.getSeleniumOrAppiumUrl();
-            return remoteUrl != null ? remoteUrl : CbConfig.DEFAULT_WEBDRIVER_URL;
-        }
-
-        return CbConfig.DEFAULT_WEBDRIVER_URL;
-    }
-
-    public static void attachScreencastFile(final String videoFilePath) {
-        CbTestReporter reporter = getReporter();
-        if (reporter != null)
-            reporter.addScreencastAttachment(videoFilePath, false);
+        return CbTestListener.ctx.getReporter();
     }
 
     @Override
@@ -124,7 +44,7 @@ public class CbTestNGListener implements
         }
     }
 
-    @Override
+    /*@Override
     public void beforeConfiguration(ITestResult iTestResult) {
 
     }
@@ -142,7 +62,7 @@ public class CbTestNGListener implements
     @Override
     public void onConfigurationSkip(ITestResult iTestResult) {
 
-    }
+    }*/
 
     @Override
     public void onTestStart(ITestResult testResult) {

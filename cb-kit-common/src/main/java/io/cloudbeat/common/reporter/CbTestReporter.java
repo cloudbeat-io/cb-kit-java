@@ -211,8 +211,12 @@ public class CbTestReporter {
 
     public CaseResult startCase(final String name, final String fqn) {
         SuiteResult startedSuite = lastSuiteResult.get();
-        if (startedSuite == null)
-            return null;
+        if (startedSuite == null) {
+            if (result.getSuites().size() > 0)
+                startedSuite = result.getSuites().get(0);
+            else
+                return  null;
+        }
         CaseResult newCase = startedSuite.addNewCaseResult(name);
         newCase.setFqn(fqn);
         startedStepsQueue.remove();

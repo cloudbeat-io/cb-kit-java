@@ -3,14 +3,17 @@ package io.cloudbeat.common.har;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudbeat.common.har.model.*;
 import io.cloudbeat.common.model.HttpNetworkEntry;
+import okio.Path;
+import org.apache.cxf.helpers.FileUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -62,6 +65,10 @@ public final class HarHelper {
     }
 
     public static void writeHarFile(final HarLog harLog, final File file) throws IOException {
-        OBJECT_MAPPER.writeValue(file, new Har(harLog));
+        String harJsonStr = OBJECT_MAPPER.writeValueAsString(OBJECT_MAPPER);
+        String harJsonWithJsWrapStr = "onInputData(" + harJsonStr + ")";
+        FileOutputStream outputStream = new FileOutputStream(file);
+        outputStream.write(harJsonWithJsWrapStr.getBytes(StandardCharsets.UTF_8));
+        outputStream.close();
     }
 }

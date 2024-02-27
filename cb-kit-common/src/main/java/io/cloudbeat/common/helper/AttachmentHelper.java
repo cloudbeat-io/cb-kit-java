@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 public final class AttachmentHelper {
-    public static final String CB_RESULT_DIR_NAME = ".cb-results";
-    public static final String CB_ATTACHMENTS_DIR_NAME = "attachments";
+    public static final String CB_ATTACHMENTS_DIR_NAME = ".cb-attachments";
 
     public static Attachment prepareScreencastAttachment(String videoFilePath) {
         Attachment attachment = new Attachment(AttachmentType.VIDEO, AttachmentSubType.VIDEO_SCREENCAST);
@@ -33,7 +32,7 @@ public final class AttachmentHelper {
         return  attachment;
     }
     public static Attachment prepareHarAttachment(final HarLog harLog) {
-        Attachment attachment = new Attachment(AttachmentType.NETWORK, AttachmentSubType.NETWORK_HAR);
+        Attachment attachment = new Attachment(AttachmentType.HAR);
         final String fileExtension = "har";
         Path harFilePath = getAttachmentFilePath(attachment, fileExtension);
         if (harFilePath == null) return  null;
@@ -48,7 +47,7 @@ public final class AttachmentHelper {
     private static Path getAttachmentFilePath(final Attachment attachment, final String fileExtension) {
         final String fileName = fileExtension != null && fileExtension.length() > 0 ?
                 String.format("%s.%s", attachment.getId(), fileExtension) : attachment.getId();
-        Path attachmentsFolderPath = Paths.get(CB_RESULT_DIR_NAME, CB_ATTACHMENTS_DIR_NAME);
+        Path attachmentsFolderPath = Paths.get(CB_ATTACHMENTS_DIR_NAME);
         try {
             Files.createDirectories(attachmentsFolderPath);
             // as file name is auto-generated, we need to set it here for further use

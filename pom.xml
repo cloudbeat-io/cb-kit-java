@@ -47,6 +47,7 @@
         <module>cb-kit-cucumber1</module>
         <module>cb-kit-cucumber1-runner</module>
         <module>cb-kit-junit5</module>
+        <module>cb-kit-quantum</module>
     </modules>
 
     <dependencies>

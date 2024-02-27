@@ -1,9 +1,8 @@
-package io.cloudbeat.testng;
+package io.cloudbeat.qaf.testng;
 
+import com.qmetry.qaf.automation.step.client.TestNGScenario;
 import io.cloudbeat.common.reporter.CbTestReporter;
-import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
-import io.cloudbeat.common.reporter.model.SuiteResult;
 import io.cloudbeat.common.reporter.model.TestStatus;
 import io.cloudbeat.common.wrapper.console.SystemConsoleWrapper;
 import org.testng.ISuite;
@@ -96,15 +95,11 @@ public final class CbTestNGReporter {
         if (!reporter.getInstance().isPresent())
             return;
         final ITestNGMethod testMethod = testResult.getMethod();
-        String[] groups = testMethod.getGroups();
-        Object[] params = testResult.getParameters();
-        Set<String> names = testResult.getTestContext().getAttributeNames();
+        if (!(testMethod instanceof TestNGScenario))
+            return;
+        TestNGScenario scenario = (TestNGScenario)testMethod;
         final String methodDisplayName = testMethod.getMethodName();
-        final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
-        // startTestMethod might be called twice for the same test method, if the test method
-        // has "before method" hooks - in that case, ignore the second call
-        // if (reporter.getStartedCase() != null && reporter.getStartedCase().getFqn().equals(methodFqn))
-            // return;
+        final String methodFqn = scenario.getSignature();
         reporter.startCase(methodDisplayName, methodFqn);
     }
 
@@ -112,17 +107,27 @@ public final class CbTestNGReporter {
         if (!reporter.getInstance().isPresent())
             return;
         final ITestNGMethod testMethod = testResult.getMethod();
-        final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
+        if (!(testMethod instanceof TestNGScenario))
+            return;
+        TestNGScenario scenario = (TestNGScenario)testMethod;
+        final String methodFqn = getScenarioFqn(scenario);
         if (Objects.nonNull(testResult.getThrowable()))
             reporter.endCase(methodFqn, TestStatus.FAILED, testResult.getThrowable());
         else
             reporter.endCase(methodFqn);
     }
 
+    private static String getScenarioFqn(TestNGScenario scenario) {
+        return scenario.getSignature();
+    }
+
     public static void skipTestMethod(CbTestReporter reporter, ITestResult testResult) throws Exception {
         final ITestNGMethod testMethod = testResult.getMethod();
         final String methodDisplayName = testMethod.getMethodName();
-        final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
+        if (!(testMethod instanceof TestNGScenario))
+            return;
+        TestNGScenario scenario = (TestNGScenario)testMethod;
+        final String methodFqn = getScenarioFqn(scenario);
         final String suiteFqn = generateFqnForSuite(testResult.getTestContext().getSuite().getXmlSuite());
         // reporter.startCase(methodDisplayName, methodFqn);
         reporter.skipCase(methodFqn);
@@ -132,7 +137,10 @@ public final class CbTestNGReporter {
         if (!reporter.getInstance().isPresent())
             return;
         final ITestNGMethod testMethod = testResult.getMethod();
-        final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
+        if (!(testMethod instanceof TestNGScenario))
+            return;
+        TestNGScenario scenario = (TestNGScenario)testMethod;
+        final String methodFqn = getScenarioFqn(scenario);
         reporter.endCase(methodFqn, TestStatus.FAILED, testResult.getThrowable());
     }
 

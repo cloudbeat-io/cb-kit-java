@@ -44,6 +44,16 @@ public class CbJunitExtension implements
         return System.getenv(name);
     }
 
+    public static Map<String, Object> getCapabilities(Map<String, Object> defaultCapabilities) {
+        if (ctx == null || ctx.getConfig() == null)
+            return defaultCapabilities;
+        return ctx.getConfig().getCapabilities();
+    }
+
+    public static Map<String, Object> getCapabilities() {
+        return getCapabilities(null);
+    }
+
     public static <D> D wrapWebDriver(D driver) {
         return ctx.wrapWebDriver(driver);
     }

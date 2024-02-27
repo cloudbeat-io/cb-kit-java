@@ -10,6 +10,9 @@ public class Attachment {
     AttachmentType type;
     AttachmentSubType subtype;
 
+    public Attachment(AttachmentType type) {
+        this(type, null);
+    }
     public Attachment(AttachmentType type, AttachmentSubType subtype) {
         this.id = UUID.randomUUID().toString();
         this.type = type;

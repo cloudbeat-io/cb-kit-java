@@ -1,14 +1,13 @@
 package io.cloudbeat.common.reporter.model;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum AttachmentType {
-    IMAGE("image"),
+    SCREENSHOT("screenshot"),
     VIDEO("video"),
     TEXT("text"),
     LOG("log"),
-    NETWORK("network"),
+    HAR("har"),
     OTHER("other");
 
     private final String value;
