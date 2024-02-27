@@ -27,36 +27,42 @@ public final class JsonConfigLoader {
 
         CbConfig config = new CbConfig();
         final ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readValue(json, JsonNode.class);
-        config.runId = rootNode.get("RunId").textValue();
-        config.instanceId = rootNode.get("InstanceId").textValue();
-        config.instanceId = rootNode.get("InstanceId").textValue();
-        config.capabilities = mapper.readValue(rootNode.get("Capabilities").toString(), mapTypeRef);
-        mapFoldedCapabilities(config.capabilities, mapper);
-        config.metadata = mapper.readValue(rootNode.get("Metadata").toString(), mapTypeRef);
-        config.envVars = mapper.readValue(rootNode.get("EnvironmentVariables").toString(), mapTypeRef);
-        config.options = mapper.readValue(rootNode.get("Options").toString(), mapStringTypeRef);
-        config.tags = mapper.readValue(rootNode.get("Tags").toString(), listStringTypeRef);
-        // if cases list is specified, map it to a simple list of cases FQNs
-        if (rootNode.has("Cases")) {
-            config.cases = new ArrayList<>();
-            for (JsonNode caseNode : rootNode.get("Cases")) {
-                if (caseNode.get("Fqn") != null)
-                    config.cases.add(caseNode.get("Fqn").asText());
-                else if (caseNode.get("Details") != null) {
-                    if (caseNode.get("Details").get("FullyQualifiedName") != null)
-                        config.cases.add(caseNode.get("Details").get("FullyQualifiedName").asText());
+        try {
+            JsonNode rootNode = mapper.readValue(json, JsonNode.class);
+            config.runId = rootNode.get("RunId").textValue();
+            config.instanceId = rootNode.get("InstanceId").textValue();
+            config.instanceId = rootNode.get("InstanceId").textValue();
+            config.capabilities = mapper.readValue(rootNode.get("Capabilities").toString(), mapTypeRef);
+            mapFoldedCapabilities(config.capabilities, mapper);
+            config.metadata = mapper.readValue(rootNode.get("Metadata").toString(), mapStringTypeRef);
+            config.envVars = mapper.readValue(rootNode.get("EnvironmentVariables").toString(), mapStringTypeRef);
+            config.options = mapper.readValue(rootNode.get("Options").toString(), mapStringTypeRef);
+            config.tags = mapper.readValue(rootNode.get("Tags").toString(), listStringTypeRef);
+            // if cases list is specified, map it to a simple list of cases FQNs
+            if (rootNode.has("Cases")) {
+                config.cases = new ArrayList<>();
+                for (JsonNode caseNode : rootNode.get("Cases")) {
+                    if (caseNode.get("Fqn") != null)
+                        config.cases.add(caseNode.get("Fqn").asText());
+                    else if (caseNode.get("Details") != null) {
+                        if (caseNode.get("Details").get("FullyQualifiedName") != null)
+                            config.cases.add(caseNode.get("Details").get("FullyQualifiedName").asText());
+                    }
                 }
             }
-        }
-        // set seleniumUrl, if specified
-        if (config.metadata != null && config.metadata.containsKey(SELENIUM_URL_KEY))
-            config.seleniumUrl = config.metadata.get(SELENIUM_URL_KEY);
-        // set appiumUrl, if specified
-        if (config.metadata != null && config.metadata.containsKey(APPIUM_URL_KEY))
-            config.appiumUrl = config.metadata.get(APPIUM_URL_KEY);
+            // set seleniumUrl, if specified
+            if (config.metadata != null && config.metadata.containsKey(SELENIUM_URL_KEY))
+                config.seleniumUrl = config.metadata.get(SELENIUM_URL_KEY);
+            // set appiumUrl, if specified
+            if (config.metadata != null && config.metadata.containsKey(APPIUM_URL_KEY))
+                config.appiumUrl = config.metadata.get(APPIUM_URL_KEY);
 
-        return config;
+            return config;
+        }
+        catch (Throwable e) {
+            System.err.println("Cannot read CB configuration file: " + e.toString());
+            return null;
+        }
     }
 
     private static void mapFoldedCapabilities(Map<String, Object> caps, ObjectMapper mapper) {
