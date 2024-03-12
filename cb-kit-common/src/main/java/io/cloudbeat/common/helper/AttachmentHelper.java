@@ -31,6 +31,18 @@ public final class AttachmentHelper {
         }
         return  attachment;
     }
+    public static Attachment prepareScreenshotAttachment(final byte[] data) {
+        Attachment attachment = new Attachment(AttachmentType.SCREENSHOT);
+        final String fileExtension = "png";
+        Path pngFilePath = getAttachmentFilePath(attachment, fileExtension);
+        if (pngFilePath == null) return  null;
+        try {
+            Files.write(pngFilePath, data);
+        } catch (IOException e) {
+            return  null;
+        }
+        return attachment;
+    }
     public static Attachment prepareHarAttachment(final HarLog harLog) {
         Attachment attachment = new Attachment(AttachmentType.HAR);
         final String fileExtension = "har";
@@ -52,7 +64,9 @@ public final class AttachmentHelper {
             Files.createDirectories(attachmentsFolderPath);
             // as file name is auto-generated, we need to set it here for further use
             attachment.setFileName(fileName);
-            return attachmentsFolderPath.resolve(fileName);
+            Path filePath = attachmentsFolderPath.resolve(fileName);
+            attachment.setFilePath(filePath.toAbsolutePath().toString());
+            return filePath;
         } catch (IOException e) {
             return null;
         }

@@ -31,4 +31,10 @@ public final class AspectUtils {
                 return new AbstractMap.SimpleImmutableEntry<String, Object>(paramName, paramVal);
             }).collect(Collectors.toList());
     }
+
+    public static String resolveStepArguments(String stepName, List<String> argList) {
+        if (argList == null || argList.size() == 0)
+            return stepName;
+        return String.format(stepName, argList.toArray());
+    }
 }

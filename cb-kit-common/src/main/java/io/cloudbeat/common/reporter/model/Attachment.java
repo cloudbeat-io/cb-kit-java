@@ -7,6 +7,7 @@ public class Attachment {
     String id;
     String mimeType;
     String fileName;
+    String filePath;
     AttachmentType type;
     AttachmentSubType subtype;
 
@@ -31,6 +32,10 @@ public class Attachment {
         return fileName;
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
     public AttachmentType getType() {
         return type;
     }
@@ -45,6 +50,10 @@ public class Attachment {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
     public void setType(AttachmentType type) {

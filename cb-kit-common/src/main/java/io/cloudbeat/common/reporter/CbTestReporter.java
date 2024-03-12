@@ -599,6 +599,25 @@ public class CbTestReporter {
         resultWithAttachment.addAttachment(attachment);
     }
 
+    public void addScreenshot(final byte[] data, final boolean addToStep) {
+        final IResultWithAttachment resultWithAttachment;
+        if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
+            resultWithAttachment = startedStepsQueue.get().peek();
+        }
+        else if (!addToStep) {
+            if (lastCaseResult.get() != null)
+                resultWithAttachment = lastCaseResult.get();
+            else if (lastSuiteResult.get() != null)
+                resultWithAttachment = lastSuiteResult.get();
+            else
+                return;
+        }
+        else
+            return;
+        Attachment attachment = AttachmentHelper.prepareScreenshotAttachment(data);
+        resultWithAttachment.addAttachment(attachment);
+    }
+
 
 
     private static String getHostName() {

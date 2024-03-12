@@ -12,6 +12,7 @@ import java.util.*;
 public class CaseResult implements IResultWithAttachment {
     String id;
     String name;
+    String displayName;
     String description;
     @JsonSerialize(using = EpochTimeSerializer.class)
     long startTime;
@@ -21,7 +22,7 @@ public class CaseResult implements IResultWithAttachment {
     @Nullable
     Long duration;
     String fqn;
-    ArrayList<String> arguments;
+    List<String> arguments;
     @JsonSerialize(using = TestStatusSerializer.class)
     TestStatus status;
     FailureResult failure;
@@ -94,14 +95,23 @@ public class CaseResult implements IResultWithAttachment {
         this.fqn = fqn;
     }
 
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
     public void setFailure(Throwable exception) {
         failure = new FailureResult(exception);
+    }
+
+    public void setArguments(List<String> arguments) {
+        this.arguments = arguments;
     }
 
     /* Getters */
     public String getId() { return id; }
 
     public String getName() { return name; }
+    public String getDisplayName() { return displayName; }
     public String getDescription() { return description; }
 
     public void setDescription(String description) {

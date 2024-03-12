@@ -21,6 +21,7 @@ public class StepResult implements IResultWithAttachment {
     String id;
     @Nonnull
     String name;
+    String displayName;
     @Nonnull
     StepType type;
     @Nullable
@@ -138,6 +139,9 @@ public class StepResult implements IResultWithAttachment {
 
     /* Setters */
     public void setFqn(String fqn) { this.fqn = fqn; }
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
     public void setArgs(List<String > args) { this.args = args; }
     public void setLocation(String location) { this.location = location; }
     public String getLocation() { return location; }
@@ -147,6 +151,7 @@ public class StepResult implements IResultWithAttachment {
     public String getId() { return id; }
 
     public String getName() { return name; }
+    public String getDisplayName() { return displayName; }
 
     public List<String> getArgs() { return args; }
 

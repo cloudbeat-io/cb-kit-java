@@ -5,12 +5,14 @@ import java.util.*;
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.reporter.CbTestReporter;
+import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 
 import org.junit.jupiter.api.extension.*;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 
@@ -19,16 +21,19 @@ public class CbJunitExtension implements
         BeforeAllCallback,
         BeforeEachCallback,
         BeforeTestExecutionCallback,
+        InvocationInterceptor,
         AfterTestExecutionCallback,
         AfterEachCallback,
         AfterAllCallback,
         ExtensionContext.Store.CloseableResource,
-        TestWatcher,
-        InvocationInterceptor
+        TestWatcher
 {
     static boolean started = false;
     static CbTestContext ctx = CbTestContext.getInstance();
     final ThreadLocal<Map<String, BeforeTestMethodHookInvocationDetails>> beforeMethodHookInvocationMap
+            = ThreadLocal.withInitial(HashMap::new);
+
+    final ThreadLocal<Map<String, Object[]>> testMethodInvocationArgsMap
             = ThreadLocal.withInitial(HashMap::new);
 
     public CbJunitExtension() {
@@ -100,6 +105,30 @@ public class CbJunitExtension implements
         ctx.getReporter().logError(message, throwable);
     }
 
+    public static void attachScreenRecordingFile(final String videoFilePath) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreencastAttachment(videoFilePath, false);
+    }
+
+    public static void addScreenRecordingFile(final String videoFilePath, boolean addToStep) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreencastAttachment(videoFilePath, addToStep);
+    }
+
+    public static void addScreenshot(final byte[] screenshotData) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreenshot(screenshotData, true);
+    }
+
+    public static void addScreenshot(final byte[] screenshotData, boolean addToStep) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreenshot(screenshotData, addToStep);
+    }
+
     @Override
     public synchronized void beforeAll(ExtensionContext context) {
         if (!started) {
@@ -113,6 +142,50 @@ public class CbJunitExtension implements
         if (ctx.isActive())
             JunitReporterUtils.startSuite(ctx.getReporter(), context);
     }
+    @Override
+    public void interceptTestMethod(Invocation<Void> invocation,
+                                    ReflectiveInvocationContext<Method> invocationContext,
+                                    ExtensionContext extensionContext) throws Throwable {
+        if (ctx.isActive()) {
+            CaseResult startedCase = ctx.getReporter().getStartedCase();
+            if (startedCase != null && startedCase.getArguments() == null) {
+                List<String> argList = invocationContext.getArguments().stream()
+                        .map(x -> x != null ? x.toString() : null)
+                        .collect(Collectors.toList());
+                if (argList.size() > 0)
+                    startedCase.setArguments(argList);
+            }
+        }
+        invocation.proceed();
+    }
+    @Override
+    public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
+                                     ExtensionContext extensionContext) throws Throwable {
+        invocation.proceed();
+    }
+
+    @Override
+    public <T> T interceptTestFactoryMethod(Invocation<T> invocation,
+                                            ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+        return invocation.proceed();
+    }
+
+    @Override
+    public void interceptTestTemplateMethod(Invocation<Void> invocation,
+                                            ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+        if (ctx.isActive()) {
+            CaseResult startedCase = ctx.getReporter().getStartedCase();
+            if (startedCase != null) {
+                List<String> argList = invocationContext.getArguments().stream()
+                        .map(x -> x != null ? x.toString() : null)
+                        .collect(Collectors.toList());
+                if (argList.size() > 0)
+                    startedCase.setArguments(argList);
+            }
+        }
+        invocation.proceed();
+    }
+
     @Override
     public void interceptBeforeEachMethod(
             final Invocation<Void> invocation,
@@ -194,6 +267,7 @@ public class CbJunitExtension implements
             return;
         try {
             ctx.setCurrentTestClass(context.getTestClass().orElse(null));
+            //context.getTestMethod().get().getParameters().
             JunitReporterUtils.startCase(ctx.getReporter(), context);
             // if there are pending "beforeEach" invocations, append them to the test case
             addPendingBeforeHooks();
@@ -253,8 +327,14 @@ public class CbJunitExtension implements
     private void setup(final ExtensionContext context) {
         if (!ctx.isActive())
             return;
+        String wrapConsolePropVal = System.getProperty("CB_WRAP_CONSOLE", null);
+        boolean wrapConsole;
+        if (wrapConsolePropVal == null)
+            wrapConsole = true;
+        else
+            wrapConsole = !wrapConsolePropVal.equalsIgnoreCase("false");
         ctx.getReporter().setFramework("JUnit", "5");
-        JunitReporterUtils.startInstance(ctx.getReporter());
+        JunitReporterUtils.startInstance(ctx.getReporter(), wrapConsole);
     }
 
     @Override

@@ -4,21 +4,23 @@ import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
+import io.cloudbeat.common.wrapper.console.SystemConsoleWrapper;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.util.Optional;
 
 public class JunitReporterUtils {
     public static final String JAVA_METHOD_FQN_FORMAT = "%s#%s";
+    final static SystemConsoleWrapper consoleWrapper = new SystemConsoleWrapper();
 
-    public static  void startInstance(CbTestReporter reporter) {
-        //CbTestReporter reporter = CbTestContext.getReporter();
+    public static  void startInstance(CbTestReporter reporter, boolean wrapSystemConsole) {
         if (!reporter.getInstance().isPresent())
             reporter.startInstance();
+        if (wrapSystemConsole)
+            consoleWrapper.start(reporter);
     }
 
     public static  void endInstance(CbTestReporter reporter) {
-        //CbTestReporter reporter = CbTestContext.getReporter();
         if (reporter.getInstance().isPresent())
             reporter.endInstance();
     }
@@ -47,7 +49,8 @@ public class JunitReporterUtils {
         final String classFqn = context.getTestClass().get().getName();
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
-        reporter.startCase(methodName, methodFqn);
+        CaseResult caseResult = reporter.startCase(methodName, methodFqn);
+        caseResult.setDisplayName(context.getDisplayName());
     }
 
     public static void endCase(CbTestReporter reporter, ExtensionContext context) throws Exception {
