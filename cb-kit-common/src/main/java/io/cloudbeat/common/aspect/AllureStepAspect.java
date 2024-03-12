@@ -2,6 +2,7 @@ package io.cloudbeat.common.aspect;
 
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.helper.WebDriverHelper;
+import io.cloudbeat.common.reporter.model.StepResult;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
 import io.qameta.allure.Step;
@@ -9,6 +10,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 
 import java.util.AbstractMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Aspect
 public class AllureStepAspect {
@@ -30,7 +32,12 @@ public class AllureStepAspect {
             return;
         final MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
         final List<AbstractMap.SimpleImmutableEntry<String, Object>> parameters = AspectUtils.getParameters(methodSignature, joinPoint.getArgs());
-        ctx.getReporter().startStep(step.value());
+        StepResult stepResult = ctx.getReporter().startStep(step.value());
+        if (parameters != null && parameters.size() > 0) {
+            stepResult.setArgs(
+                    parameters.stream().map(p -> p.getValue().toString()).collect(Collectors.toList())
+            );
+        }
     }
 
     @AfterThrowing(value = "anyMethod() && withAllureStepAnnotation(step)", throwing = "throwable", argNames = "step,throwable")

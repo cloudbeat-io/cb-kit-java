@@ -3,12 +3,14 @@ package io.cloudbeat.common.aspect;
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.helper.WebDriverHelper;
 import io.cloudbeat.common.annotation.CbStep;
+import io.cloudbeat.common.reporter.model.StepResult;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.MethodSignature;
 
 import java.util.AbstractMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Aspect
 public class CbStepAspect {
@@ -30,9 +32,13 @@ public class CbStepAspect {
     public void stepStart(final JoinPoint joinPoint, final CbStep step) {
         if (!ctx.isActive() || ctx.getReporter() == null)
             return;
-        final MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-        final List<AbstractMap.SimpleImmutableEntry<String, Object>> parameters = AspectUtils.getParameters(methodSignature, joinPoint.getArgs());
-        ctx.getReporter().startStep(step.value());
+        MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+        List<AbstractMap.SimpleImmutableEntry<String, Object>> parameters = AspectUtils.getParameters(methodSignature, joinPoint.getArgs());
+        List<String> argList = parameters.stream().map(p -> p.getValue().toString()).collect(Collectors.toList());
+        String stepName = AspectUtils.resolveStepArguments(step.value(), argList);
+        StepResult stepResult = ctx.getReporter().startStep(stepName);
+        if (argList != null && argList.size() > 0)
+            stepResult.setArgs(argList);
     }
 
     @AfterThrowing(value = "anyMethod() && withStepAnnotation(step)", throwing = "throwable", argNames = "step,throwable")
