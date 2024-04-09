@@ -31,6 +31,18 @@ public final class AttachmentHelper {
         }
         return  attachment;
     }
+    public static Attachment prepareScreencastAttachment(final byte[] data) {
+        Attachment attachment = new Attachment(AttachmentType.VIDEO, AttachmentSubType.VIDEO_SCREENCAST);
+        final String fileExtension = "mp4";
+        Path targetFilePath = getAttachmentFilePath(attachment, fileExtension);
+        if (targetFilePath == null) return null;
+        try {
+            Files.write(targetFilePath, data);
+        } catch (IOException e) {
+            return null;
+        }
+        return attachment;
+    }
     public static Attachment prepareScreenshotAttachment(final byte[] data) {
         Attachment attachment = new Attachment(AttachmentType.SCREENSHOT);
         final String fileExtension = "png";

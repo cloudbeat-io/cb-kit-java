@@ -7,7 +7,13 @@ import io.cloudbeat.common.wrapper.webdriver.WebDriverWrapper;
 import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.apache.commons.lang3.tuple.Pair;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.support.events.EventFiringDecorator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class WebDriverWrapperImpl implements WebDriverWrapper {
     private CbTestReporter reporter;
@@ -49,6 +55,25 @@ public class WebDriverWrapperImpl implements WebDriverWrapper {
                 options
         );
         return Pair.of((L)listener, abstractDriver);
+    }
+    @Override
+    public void addLogPerformancePrefs(Map<String, Object> capabilities) {
+        if (capabilities == null)
+            return;
+        LoggingPreferences logPrefs = new LoggingPreferences();
+        logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
+        capabilities.put( "goog:loggingPrefs", logPrefs );
+    }
+    @Override
+    public void addSelenoidOptions(Map<String, Object> capabilities, boolean enableVideo, String videoName, boolean enableVNC) {
+        if (capabilities == null)
+            return;
+        Map<String, Object> selenoidOpts = new HashMap<>();
+        selenoidOpts.put("enableVideo", enableVideo);
+        selenoidOpts.put("videoName", videoName);
+        selenoidOpts.put("enableVNC", enableVNC);
+        selenoidOpts.put("videoFrameRate", 4);
+        capabilities.put("selenoid:options", selenoidOpts);
     }
 
 }

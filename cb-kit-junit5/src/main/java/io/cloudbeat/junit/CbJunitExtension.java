@@ -4,10 +4,13 @@ import java.util.*;
 
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.config.CbConfig;
+import io.cloudbeat.common.helper.SelenoidHelper;
 import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 
+import io.cloudbeat.common.wrapper.webdriver.WebDriverWrapper;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.*;
 
 import javax.annotation.Nullable;
@@ -35,6 +38,7 @@ public class CbJunitExtension implements
 
     final ThreadLocal<Map<String, Object[]>> testMethodInvocationArgsMap
             = ThreadLocal.withInitial(HashMap::new);
+    final ThreadLocal<Throwable> lastTestException = new ThreadLocal<>();
 
     public CbJunitExtension() {
 
@@ -49,14 +53,46 @@ public class CbJunitExtension implements
         return System.getenv(name);
     }
 
-    public static Map<String, Object> getCapabilities(Map<String, Object> defaultCapabilities) {
+    public static String getSeleniumUrl() {
+        if (ctx == null || ctx.getReporter() == null)
+            return null;
+        return ctx.getConfig().getSeleniumUrl();
+    }
+
+    public static String getAppiumUrl() {
+        if (ctx == null || ctx.getReporter() == null)
+            return null;
+        return ctx.getConfig().getAppiumUrl();
+    }
+
+    public static Map<String, Object> getCapabilities(Map<String, Object> userCaps, TestInfo testInfo, boolean noPerfLogging) {
         if (ctx == null || ctx.getConfig() == null)
-            return defaultCapabilities;
-        return ctx.getConfig().getCapabilities();
+            return userCaps;
+        Map<String, Object> cbCaps = ctx.getConfig().getCapabilities() != null ? ctx.getConfig().getCapabilities() : new HashMap<>();
+        // merge user capabilities with CB capabilities - user capabilities will override CB caps
+        if (userCaps != null)
+            userCaps.keySet().stream().forEach(key -> cbCaps.put(key, userCaps.get(key)));
+        String browserName = (String) cbCaps.getOrDefault("browserName", null);
+        WebDriverWrapper wdWrapper = ctx.getWebDriverWrapper();
+        if (wdWrapper != null && browserName != null
+                && !noPerfLogging && browserName.equalsIgnoreCase("chrome"))
+            ctx.getWebDriverWrapper().addLogPerformancePrefs(cbCaps);
+        String wdUrl = getWebDriverUrl();
+        String videoName = getVideoName(testInfo);
+        if (wdWrapper != null && videoName != null && SelenoidHelper.isSelenoid(wdUrl))
+            wdWrapper.addSelenoidOptions(cbCaps, true, videoName, false);
+        return cbCaps;
+    }
+
+    public static Map<String, Object> getCapabilities(Map<String, Object> userCaps, TestInfo testInfo) {
+        return getCapabilities(userCaps, testInfo, false);
+    }
+    public static Map<String, Object> getCapabilities(Map<String, Object> userCaps) {
+        return getCapabilities(userCaps, null);
     }
 
     public static Map<String, Object> getCapabilities() {
-        return getCapabilities(null);
+        return getCapabilities(null, null);
     }
 
     public static <D> D wrapWebDriver(D driver) {
@@ -105,28 +141,48 @@ public class CbJunitExtension implements
         ctx.getReporter().logError(message, throwable);
     }
 
-    public static void attachScreenRecordingFile(final String videoFilePath) {
+    public static void attachScreenRecording(final String videoFilePath) {
         CbTestReporter reporter = getReporter();
         if (reporter != null)
             reporter.addScreencastAttachment(videoFilePath, false);
     }
 
-    public static void addScreenRecordingFile(final String videoFilePath, boolean addToStep) {
+    public static boolean attachScreenRecording(final TestInfo testInfo) {
         CbTestReporter reporter = getReporter();
-        if (reporter != null)
-            reporter.addScreencastAttachment(videoFilePath, addToStep);
+        if (reporter == null || testInfo == null)
+            return false;
+        if (ctx.getLastTestException() == null)
+            return false;
+        String videoName = getVideoName(testInfo);
+        if (videoName == null)
+            return false;
+        String wdUrl = getWebDriverUrl();
+        if (!SelenoidHelper.isSelenoid(wdUrl))
+            return false;
+        byte[] data = SelenoidHelper.getVideoFile(wdUrl, videoName);
+        if (data == null)
+            return false;
+        reporter.addScreencastAttachment(data, false);
+        return true;
     }
 
-    public static void addScreenshot(final byte[] screenshotData) {
-        CbTestReporter reporter = getReporter();
-        if (reporter != null)
-            reporter.addScreenshot(screenshotData, true);
+    private static String getVideoName(final TestInfo testInfo) {
+        if (testInfo.getTestMethod().isPresent()) {
+            return Math.abs(testInfo.getTestMethod().get().hashCode()) + "";
+        }
+        return null;
     }
 
-    public static void addScreenshot(final byte[] screenshotData, boolean addToStep) {
+    public static void attachScreenshot(final byte[] screenshotData) {
         CbTestReporter reporter = getReporter();
         if (reporter != null)
-            reporter.addScreenshot(screenshotData, addToStep);
+            reporter.addScreenshotAttachment(screenshotData, true);
+    }
+
+    public static void attachScreenshot(final byte[] screenshotData, boolean addToStep) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addScreenshotAttachment(screenshotData, addToStep);
     }
 
     @Override
@@ -227,6 +283,8 @@ public class CbJunitExtension implements
                 hookFqn,
                 false,
                 null);
+            // we need to set the current test exception in the global exception variable
+            // because exception might be retrieve inside after hook method
             try {
                 invocation.proceed();
             }
@@ -237,6 +295,9 @@ public class CbJunitExtension implements
                     e,
                     null);
                 throw e;
+            }
+            finally {
+                lastTestException.set(null);
             }
             JunitReporterUtils.endCaseHook(
                 ctx.getReporter(),
@@ -267,6 +328,7 @@ public class CbJunitExtension implements
             return;
         try {
             ctx.setCurrentTestClass(context.getTestClass().orElse(null));
+            ctx.setLastTestException(null);
             //context.getTestMethod().get().getParameters().
             JunitReporterUtils.startCase(ctx.getReporter(), context);
             // if there are pending "beforeEach" invocations, append them to the test case
@@ -282,6 +344,7 @@ public class CbJunitExtension implements
         if (!ctx.isActive())
             return;
         try {
+            ctx.setLastTestException(context.getExecutionException().orElse(null));
             JunitReporterUtils.endCase(ctx.getReporter(), context);
             ctx.setCurrentTestClass(null);
         }

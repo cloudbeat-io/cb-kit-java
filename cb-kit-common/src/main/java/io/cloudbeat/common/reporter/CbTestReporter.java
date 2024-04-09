@@ -598,8 +598,26 @@ public class CbTestReporter {
         Attachment attachment = AttachmentHelper.prepareScreencastAttachment(videoFilePath);
         resultWithAttachment.addAttachment(attachment);
     }
+    public void addScreencastAttachment(final byte[] videoData, final boolean addToStep) {
+        final IResultWithAttachment resultWithAttachment;
+        if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
+            resultWithAttachment = startedStepsQueue.get().peek();
+        }
+        else if (!addToStep) {
+            if (lastCaseResult.get() != null)
+                resultWithAttachment = lastCaseResult.get();
+            else if (lastSuiteResult.get() != null)
+                resultWithAttachment = lastSuiteResult.get();
+            else
+                return;
+        }
+        else
+            return;
+        Attachment attachment = AttachmentHelper.prepareScreencastAttachment(videoData);
+        resultWithAttachment.addAttachment(attachment);
+    }
 
-    public void addScreenshot(final byte[] data, final boolean addToStep) {
+    public void addScreenshotAttachment(final byte[] data, final boolean addToStep) {
         final IResultWithAttachment resultWithAttachment;
         if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
             resultWithAttachment = startedStepsQueue.get().peek();
