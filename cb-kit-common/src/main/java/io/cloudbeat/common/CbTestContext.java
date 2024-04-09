@@ -35,6 +35,8 @@ public class CbTestContext {
 
     private final ThreadLocal<AbstractWebDriver> currentAbstractWebDriver = new ThreadLocal();
 
+    private final ThreadLocal<Throwable> lastTestException = new ThreadLocal<>();
+
             //InheritableThreadLocal.withInitial(() -> new CbTestContext());
     /*new ThreadLocal<CbTestContext>() {
         @Override
@@ -63,6 +65,14 @@ public class CbTestContext {
             System.err.println("Failed to initialize CbTestContext: " + e);
         }
         CURRENT_CONTEXT.set(this);
+    }
+
+    public void setLastTestException(Throwable exception) {
+        this.lastTestException.set(exception);
+    }
+
+    public Throwable getLastTestException() {
+        return this.lastTestException.get();
     }
     /**
      * Returns a current test context linked to the current thread.
@@ -131,6 +141,17 @@ public class CbTestContext {
         }
         currentAbstractWebDriver.remove();
         return null;
+    }
+    public WebDriverWrapper getWebDriverWrapper() {
+        try {
+            Class wrapperClass = Class.forName("io.cloudbeat.selenium.WebDriverWrapperImpl");
+            return (WebDriverWrapper) wrapperClass
+                    .getDeclaredConstructor(new Class[]{CbTestReporter.class})
+                    .newInstance(this.reporter);
+        }
+        catch (Throwable e) {
+            return null;
+        }
     }
     public <D> D wrapWebDriver(D driver) {
         return wrapWebDriver(driver, null);

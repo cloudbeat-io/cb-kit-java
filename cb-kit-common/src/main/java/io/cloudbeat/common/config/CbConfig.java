@@ -20,6 +20,8 @@ public class CbConfig {
     public static final String CB_META_PREFIX = "CB_META.";
     public static final String CB_ENV_PREFIX = "CB_ENV.";
     public static final String CB_OPT_PREFIX = "CB_OPT.";
+    public static final String CB_SELENIUM_URL = "CB_SELENIUM_URL";
+    public static final String CB_APPIUM_URL = "CB_APPIUM_URL";
 
     final Properties props;
     String runId;
@@ -68,6 +70,8 @@ public class CbConfig {
         runId = getProperty(CB_RUN_ID);
         runGroup = getProperty(CB_RUN_GROUP);
         instanceId = getProperty(CB_INSTANCE_ID);
+        seleniumUrl = getProperty(CB_SELENIUM_URL);
+        appiumUrl = getProperty(CB_APPIUM_URL);
         // load capabilities
         loadMapFromPrefixedCaps(CB_CAPS_PREFIX, capabilities);
         // load metadata
