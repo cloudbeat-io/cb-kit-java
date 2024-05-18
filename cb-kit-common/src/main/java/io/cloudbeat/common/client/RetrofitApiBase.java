@@ -1,6 +1,7 @@
 package io.cloudbeat.common.client;
 
 import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 
 import java.io.IOException;
@@ -22,6 +23,20 @@ public abstract class RetrofitApiBase {
             throw new CbClientException(e);
         }
         return null;
+    }
+    public <T> void executeAsync(Call<T> call) throws CbClientException {
+        call.enqueue(new Callback<T>()
+        {
+            @Override
+            public void onResponse(Call<T> call, Response<T> response)
+            {
+            }
+
+            @Override
+            public void onFailure(Call<T> call, Throwable t)
+            {
+            }
+        });
     }
     public <T> T executeWithApiResponse(Call<CbApiResponse<T>> call) throws CbClientException {
         try {

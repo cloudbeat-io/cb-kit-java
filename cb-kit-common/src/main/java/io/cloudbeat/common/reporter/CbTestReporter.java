@@ -1,7 +1,9 @@
 package io.cloudbeat.common.reporter;
 
 import io.cloudbeat.common.client.CbClientException;
-import io.cloudbeat.common.client.CbHttpClient;
+import io.cloudbeat.common.client.CbApiHttpClient;
+import io.cloudbeat.common.client.CbGatewayHttpClient;
+import io.cloudbeat.common.client.api.GatewayApi;
 import io.cloudbeat.common.client.api.RuntimeApi;
 import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.helper.AttachmentHelper;
@@ -28,8 +30,10 @@ public class CbTestReporter {
     private final static String TEST_RESULTS_FILENAME = ".CB_TEST_RESULTS.json";
     private final String language = "java";
 
-    private CbHttpClient cbClient;
-    private Optional<RuntimeApi> runtimeApi;
+    private CbApiHttpClient cbApiClient;
+    private CbGatewayHttpClient cbGatewayClient;
+    private Optional<RuntimeApi> runtimeApi = Optional.empty();
+    private Optional<GatewayApi> gatewayApi = Optional.empty();
     private CbConfig config;
     private Instance instance;
     private String frameworkName;
@@ -45,17 +49,28 @@ public class CbTestReporter {
 
     public CbTestReporter(CbConfig config) {
         this.config = config;
+        // if the test is running on user's server, then use the standard CB API
         if (config != null && StringUtils.isNotEmpty(config.getApiToken())) {
             try {
-                this.cbClient = new CbHttpClient(config.getApiToken(), config.getApiEndpointUrl());
+                this.cbApiClient = new CbApiHttpClient(config.getApiToken(), config.getApiEndpointUrl());
             } catch (CbClientException e) {
                 // ignore client initialization error - isStarted will be false in that case
                 return;
             }
-            runtimeApi = Optional.ofNullable(cbClient.getRuntimeApi());
+            runtimeApi = Optional.ofNullable(cbApiClient.getRuntimeApi());
         }
-        else
-            runtimeApi = Optional.empty();
+        // if the test is running in CB runner, then use Gateway API
+        if (config != null && StringUtils.isNotEmpty(config.getGatewayToken())) {
+            try {
+                this.cbGatewayClient = new CbGatewayHttpClient(config.getGatewayUrl(), config.getGatewayToken());
+            }
+            catch (Throwable e) {   // CbClientException
+                // ignore client initialization error - isStarted will be false in that case
+                System.out.println(e.toString());
+                return;
+            }
+            gatewayApi = Optional.ofNullable(cbGatewayClient.getGatewayApi());
+        }
     }
 
     public Optional<Instance> getInstance() {
@@ -221,6 +236,8 @@ public class CbTestReporter {
         newCase.setFqn(fqn);
         startedStepsQueue.remove();
         lastCaseResult.set(newCase);
+        reportCaseStatus(newCase, Optional.empty(), null);
+
         return newCase;
     }
 
@@ -245,9 +262,42 @@ public class CbTestReporter {
         if (startedCase == null || !startedCase.getFqn().equals(caseFqn))
             return null;
 
-        endStartedSteps(status, throwable);
-        startedCase.end(status, throwable);
+        // endCase might be called twice for the same test case result,
+        // so make sure we do not update the status and report it back to CB twice
+        if (startedCase.getStatus() == null) {
+            endStartedSteps(status, throwable);
+            startedCase.end(status, throwable);
+            reportCaseStatus(startedCase, Optional.of(startedCase.getStatus()), throwable);
+        }
+
         return startedCase;
+    }
+
+    private void reportCaseStatus(CaseResult startedCase, Optional<TestStatus> status, Throwable throwable) {
+        if (!config.isRunningInCb())
+            return;
+        try {
+            if (this.gatewayApi.isPresent())
+                this.gatewayApi.get().updateTestCaseStatus(
+                        result.getRunId(),
+                        result.getInstanceId(),
+                        startedCase.getId(),
+                        startedCase.getFqn(),
+                        startedCase.getName(),
+                        status,
+                        startedCase.getFailure());
+            else if (this.runtimeApi.isPresent())
+                this.runtimeApi.get().updateTestCaseStatus(
+                        result.getRunId(),
+                        result.getInstanceId(),
+                        startedCase.getId(),
+                        startedCase.getFqn(),
+                        startedCase.getName(),
+                        status,
+                        startedCase.getFailure());
+        } catch (CbClientException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void endStartedSteps(TestStatus status, Throwable throwable) {

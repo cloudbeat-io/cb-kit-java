@@ -404,7 +404,6 @@ public class CbJunitExtension implements
     public void close() throws Throwable {
         if (!ctx.isActive())
             return;
-        System.out.println("close - thread: " + Thread.currentThread().getName());
         JunitReporterUtils.endInstance(ctx.getReporter());
         started = false;
     }
