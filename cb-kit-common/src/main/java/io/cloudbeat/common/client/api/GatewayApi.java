@@ -15,25 +15,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Optional;
 
-public class RuntimeApi extends RetrofitApiBase {
-    final RuntimeApiRetro retroApi;
-    public RuntimeApi(RuntimeApiRetro retroApi) {
+public class GatewayApi extends RetrofitApiBase {
+    final GatewayApiRetro retroApi;
+    public GatewayApi(GatewayApiRetro retroApi) {
         this.retroApi = retroApi;
     }
-    public String newRun(NewRunOptions options) throws CbClientException {
-        return executeWithApiResponse(retroApi.newRun(options));
-    }
 
-    public String newInstance(String runId, NewInstanceOptions options) throws CbClientException {
-        return executeWithApiResponse(retroApi.newInstance(runId, options));
-    }
-
-    public void updateRunStatus(String runId, RunStatus status) throws CbClientException {
-        execute(retroApi.updateRunStatus(runId, status));
-    }
-    public void updateInstanceStatus(String runId, String instanceId, RunStatus status) throws CbClientException {
-        execute(retroApi.updateInstanceStatus(runId, instanceId, status));
-    }
     public void updateTestCaseStatus(
             String runId,
             String instanceId,
@@ -47,12 +34,12 @@ public class RuntimeApi extends RetrofitApiBase {
         req.setRunId(runId);
         req.setInstanceId(instanceId);
         req.setTimestamp(Calendar.getInstance().getTimeInMillis());
+        req.setProgress(1);
         req.setCase(new CaseStatusInfoDto());
         req.getCase().setFqn(caseFqn);
         req.getCase().setName(caseName);
         req.getCase().setCaseResultId(caseResultId);
         req.setStatus(RunStatus.RUNNING);
-
         if (status.isPresent()) {
             req.getCase().setProgress(1);
             if (status.get() == TestStatus.PASSED)
@@ -75,13 +62,6 @@ public class RuntimeApi extends RetrofitApiBase {
             failureInfo.setIsFatal(true);
             req.getCase().getFailures().add(failureInfo);
         }
-        executeAsync(retroApi.updateTestCaseStatus(runId, instanceId, req));
-    }
-
-    public void endInstance(String runId, String instanceId, TestResult result) throws CbClientException {
-        if (result == null)
-            execute(retroApi.endInstance(runId, instanceId));
-        else
-            execute(retroApi.publishInstanceResult(runId, instanceId, result));
+        executeAsync(retroApi.updateTestCaseStatus(req));
     }
 }

@@ -2,7 +2,6 @@ package io.cloudbeat.common.client;
 
 import io.cloudbeat.common.client.api.RuntimeApi;
 import io.cloudbeat.common.client.api.RuntimeApiRetro;
-import io.cloudbeat.common.reporter.model.RunStatus;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import retrofit2.Retrofit;
@@ -18,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import static javax.print.attribute.standard.ReferenceUriSchemesSupported.HTTPS;
 
-public class CbHttpClient {
+public class CbApiHttpClient {
     //final static String DEFAULT_BASE_URL = "https://api.cloudbeat.io";
     final static String DEFAULT_BASE_URL = "http://212.80.207.119:8887";
     final static long DEFAULT_TIMEOUT_MIN = 60;
@@ -42,10 +41,10 @@ public class CbHttpClient {
         }
     };
 
-    public CbHttpClient(final String apiKey) throws CbClientException {
+    public CbApiHttpClient(final String apiKey) throws CbClientException {
         this(apiKey, DEFAULT_BASE_URL);
     }
-    public CbHttpClient(final String apiKey, final String baseUrl) throws CbClientException {
+    public CbApiHttpClient(final String apiKey, final String baseUrl) throws CbClientException {
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
 

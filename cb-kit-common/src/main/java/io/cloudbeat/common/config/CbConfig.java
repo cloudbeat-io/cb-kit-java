@@ -22,12 +22,16 @@ public class CbConfig {
     public static final String CB_OPT_PREFIX = "CB_OPT.";
     public static final String CB_SELENIUM_URL = "CB_SELENIUM_URL";
     public static final String CB_APPIUM_URL = "CB_APPIUM_URL";
+    public static final String CB_RUNNER_GATEWAY_TOKEN = "testmonitortoken";
+    public static final String CB_RUNNER_GATEWAY_URL = "testmonitorurl";
 
     final Properties props;
     String runId;
     String runGroup;
     String instanceId;
     String projectId;
+    String gatewayToken;
+    String gatewayUrl;
     String apiToken;
     String apiEndpointUrl;
     String seleniumUrl;
@@ -41,6 +45,7 @@ public class CbConfig {
 
     public CbConfig() {
         this.props = null;
+        loadGatewaySettingsFromProps();
     }
 
     public CbConfig(
@@ -49,6 +54,8 @@ public class CbConfig {
             String projectId,
             String apiEndpointUrl,
             String apiToken,
+            String gatewayUrl,
+            String gatewayToken,
             String seleniumUrl,
             String appiumUrl,
             Map<String, String> metadata,
@@ -63,6 +70,12 @@ public class CbConfig {
         loadConfigFromProps();
     }
 
+    private void loadGatewaySettingsFromProps() {
+        if (StringUtils.isNotEmpty(System.getProperty(CB_RUNNER_GATEWAY_TOKEN)))
+            gatewayToken = System.getProperty(CB_RUNNER_GATEWAY_TOKEN);
+        if (StringUtils.isNotEmpty(System.getProperty(CB_RUNNER_GATEWAY_URL)))
+            gatewayUrl = System.getProperty(CB_RUNNER_GATEWAY_URL);
+    }
     private void loadConfigFromProps() {
         apiToken = getProperty(CB_API_KEY);
         apiEndpointUrl = getProperty(CB_API_URL, DEFAULT_API_URL);
@@ -132,6 +145,8 @@ public class CbConfig {
 
     public Map<String, String> getEnvironmentVariables() { return envVars; }
 
+    public String getGatewayToken() { return gatewayToken; }
+    public String getGatewayUrl() { return gatewayUrl; }
     public String getApiToken() { return apiToken; }
 
     public String getApiEndpointUrl() { return apiEndpointUrl; }
