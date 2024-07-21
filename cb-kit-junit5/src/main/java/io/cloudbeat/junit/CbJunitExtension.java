@@ -141,6 +141,12 @@ public class CbJunitExtension implements
         ctx.getReporter().logError(message, throwable);
     }
 
+    public static void addTestAttribute(final String name, final Object value) {
+        if (ctx == null || ctx.getReporter() == null)
+            return;
+        ctx.getReporter().addTestAttribute(name, value);
+    }
+
     public static void attachScreenRecording(final String videoFilePath) {
         CbTestReporter reporter = getReporter();
         if (reporter != null)
@@ -240,6 +246,68 @@ public class CbJunitExtension implements
             }
         }
         invocation.proceed();
+    }
+
+    @Override
+    public void interceptBeforeAllMethod(
+            final Invocation<Void> invocation,
+            final ReflectiveInvocationContext<Method> invocationContext,
+            final ExtensionContext extensionContext) throws Throwable {
+        if (!ctx.isActive()) {
+            invocation.proceed();
+            return;
+        }
+        JunitReporterUtils.startSuiteHook(
+                ctx.getReporter(),
+                invocationContext,
+                true);
+        try {
+            invocation.proceed();
+        }
+        catch (Throwable e) {
+            JunitReporterUtils.endSuiteHook(
+                    ctx.getReporter(),
+                    invocationContext,
+                    e
+            );
+            throw e;
+        }
+        JunitReporterUtils.endSuiteHook(
+                ctx.getReporter(),
+                invocationContext,
+                null
+        );
+    }
+
+    @Override
+    public void interceptAfterAllMethod(
+            final Invocation<Void> invocation,
+            final ReflectiveInvocationContext<Method> invocationContext,
+            final ExtensionContext extensionContext) throws Throwable {
+        if (!ctx.isActive()) {
+            invocation.proceed();
+            return;
+        }
+        JunitReporterUtils.startSuiteHook(
+                ctx.getReporter(),
+                invocationContext,
+                false);
+        try {
+            invocation.proceed();
+        }
+        catch (Throwable e) {
+            JunitReporterUtils.endSuiteHook(
+                    ctx.getReporter(),
+                    invocationContext,
+                    e
+            );
+            throw e;
+        }
+        JunitReporterUtils.endSuiteHook(
+                ctx.getReporter(),
+                invocationContext,
+                null
+        );
     }
 
     @Override

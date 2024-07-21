@@ -155,6 +155,7 @@ public class StepResult implements IResultWithAttachment {
 
     public List<String> getArgs() { return args; }
 
+    public StepType getType() { return type; }
     public String getFqn() { return fqn; }
 
     public long getStartTime() { return startTime; }

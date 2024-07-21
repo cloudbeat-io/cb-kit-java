@@ -630,6 +630,12 @@ public class CbTestReporter {
         result.addAttribute("agent.user.timezone", SystemUtils.USER_TIMEZONE);
     }
 
+    public void addTestAttribute(final String name, final Object value) {
+        if (lastCaseResult.get() != null) {
+            lastCaseResult.get().addTestAttribute(name, value);
+        }
+    }
+
     public void addScreencastAttachment(final String videoFilePath, final boolean addToStep) {
         final IResultWithAttachment resultWithAttachment;
         if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {

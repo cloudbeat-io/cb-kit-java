@@ -35,6 +35,9 @@ public abstract class RetrofitApiBase {
             @Override
             public void onFailure(Call<T> call, Throwable t)
             {
+                System.err.println("CloudBeat API call failed: ");
+                if (t != null)
+                    System.err.println(t.toString());
             }
         });
     }
