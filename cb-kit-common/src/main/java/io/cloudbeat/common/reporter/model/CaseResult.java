@@ -26,10 +26,11 @@ public class CaseResult implements IResultWithAttachment {
     @JsonSerialize(using = TestStatusSerializer.class)
     TestStatus status;
     FailureResult failure;
-    ArrayList<StepResult> hooks = new ArrayList<>();
-    ArrayList<StepResult> steps = new ArrayList<>();
-    ArrayList<LogMessage> logs = new ArrayList<>();
-    ArrayList<Attachment> attachments = new ArrayList<>();
+    final ArrayList<StepResult> hooks = new ArrayList<>();
+    final ArrayList<StepResult> steps = new ArrayList<>();
+    final ArrayList<LogMessage> logs = new ArrayList<>();
+    final ArrayList<Attachment> attachments = new ArrayList<>();
+    final Map<String, Object> testAttributes = new HashMap<>();
 
     public CaseResult(String name) {
         this.id = UUID.randomUUID().toString();
@@ -71,6 +72,13 @@ public class CaseResult implements IResultWithAttachment {
         hookResult.addExtra("hook", new HookStepExtra(type));
         hooks.add(hookResult);
         return hookResult;
+    }
+
+    public void addTestAttribute(final String name, final Object value) {
+        if (testAttributes.containsKey(name))
+            testAttributes.replace(name, value);
+        else
+            testAttributes.put(name, value);
     }
 
     public void addLogMessage(final LogMessage logMessage) {

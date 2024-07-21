@@ -6,7 +6,9 @@ import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 import io.cloudbeat.common.wrapper.console.SystemConsoleWrapper;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 
 public class JunitReporterUtils {
@@ -87,6 +89,24 @@ public class JunitReporterUtils {
         }
 
         reporter.endCase(methodFqn, throwable);
+    }
+    public static void startSuiteHook(
+            CbTestReporter reporter,
+            ReflectiveInvocationContext<Method> context,
+            boolean isBefore) {
+        final String classFqn = context.getTargetClass().getName();
+        final String methodName = context.getExecutable().getName();
+        final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
+        reporter.startSuiteHook(methodName, methodFqn, isBefore);
+    }
+    public static void endSuiteHook(
+            CbTestReporter reporter,
+            ReflectiveInvocationContext<Method> context,
+            Throwable exception) {
+        final String classFqn = context.getTargetClass().getName();
+        final String methodName = context.getExecutable().getName();
+        final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
+        reporter.endSuiteHook(methodFqn, null, exception);
     }
     public static void startCaseHook(CbTestReporter reporter, ExtensionContext context, boolean isBefore) {
         startCaseHook(reporter, context, isBefore,null);
