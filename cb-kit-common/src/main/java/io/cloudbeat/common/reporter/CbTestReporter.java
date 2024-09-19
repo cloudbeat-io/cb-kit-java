@@ -14,8 +14,6 @@ import io.cloudbeat.common.reporter.model.extra.hook.HookType;
 import io.cloudbeat.common.writer.ResultWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -262,6 +260,11 @@ public class CbTestReporter {
         if (startedCase == null || !startedCase.getFqn().equals(caseFqn))
             return null;
 
+        return endCase(startedCase, status, throwable);
+    }
+    public CaseResult endCase(final CaseResult startedCase, final TestStatus status, final Throwable throwable) {
+        if (startedCase == null)
+            return null;
         // endCase might be called twice for the same test case result,
         // so make sure we do not update the status and report it back to CB twice
         if (startedCase.getStatus() == null) {
@@ -485,6 +488,7 @@ public class CbTestReporter {
         newHookStep.setFqn(fqn);
         return newHookStep;
     }
+
     public StepResult endCaseHook(final StepResult hookResult, final Throwable throwable) {
         return endStep(hookResult, null, throwable, null);
     }

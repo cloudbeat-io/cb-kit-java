@@ -1,5 +1,6 @@
 package io.cloudbeat.junit;
 
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 import io.cloudbeat.common.CbTestContext;
@@ -211,6 +212,7 @@ public class CbJunitExtension implements
         if (ctx.isActive()) {
             CaseResult startedCase = ctx.getReporter().getStartedCase();
             if (startedCase != null && startedCase.getArguments() == null) {
+                addTestMethodParametersToCaseContext(startedCase, invocationContext);
                 List<String> argList = invocationContext.getArguments().stream()
                         .map(x -> x != null ? x.toString() : null)
                         .collect(Collectors.toList());
@@ -219,6 +221,23 @@ public class CbJunitExtension implements
             }
         }
         invocation.proceed();
+    }
+    private void addTestMethodParametersToCaseContext(
+            CaseResult startedCase,
+            ReflectiveInvocationContext<Method> invocationContext
+    ) {
+        if (startedCase.getContext().containsKey("params"))
+            return;
+        Map<String, Object> caseResultParams = new HashMap<>();
+        if (invocationContext.getExecutable().getParameters() == null
+            || invocationContext.getExecutable().getParameters().length != invocationContext.getArguments().size())
+            return;
+        for (int i=0; i<invocationContext.getExecutable().getParameters().length; i++) {
+            Parameter reflectionParam = invocationContext.getExecutable().getParameters()[i];
+            Object value = invocationContext.getArguments().get(i);
+            caseResultParams.put(reflectionParam.getName(), value);
+        }
+        startedCase.getContext().put("params", caseResultParams);
     }
     @Override
     public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
@@ -238,6 +257,7 @@ public class CbJunitExtension implements
         if (ctx.isActive()) {
             CaseResult startedCase = ctx.getReporter().getStartedCase();
             if (startedCase != null) {
+                addTestMethodParametersToCaseContext(startedCase, invocationContext);
                 List<String> argList = invocationContext.getArguments().stream()
                         .map(x -> x != null ? x.toString() : null)
                         .collect(Collectors.toList());
@@ -317,20 +337,38 @@ public class CbJunitExtension implements
             final ExtensionContext extensionContext) throws Throwable {
         if (ctx.isActive()) {
             final String testMethodFqn = JunitReporterUtils.getTestMethodFqn(extensionContext);
+            /*CaseResult startedCase = ctx.getReporter().getStartedCase();
+            if (startedCase == null || !startedCase.getFqn().equals(testMethodFqn)) {
+                ctx.setCurrentTestClass(extensionContext.getTestClass().orElse(null));
+                ctx.setLastTestException(null);
+                startedCase = JunitReporterUtils.startCase(ctx.getReporter(), extensionContext);
+            }*/
+            CaseResult startedCase = JunitReporterUtils.startOrGetCase(ctx.getReporter(), extensionContext);
             final String hookClassFqn = invocationContext.getExecutable().getDeclaringClass().getName();
             final String hookName = invocationContext.getExecutable().getName();
             final String hookFqn = String.format(JunitReporterUtils.JAVA_METHOD_FQN_FORMAT, hookClassFqn, hookName);
-            BeforeTestMethodHookInvocationDetails hookInvocationDetails = new BeforeTestMethodHookInvocationDetails();
-            hookInvocationDetails.start(hookName, hookFqn, extensionContext);
-            beforeMethodHookInvocationMap.get().put(testMethodFqn, hookInvocationDetails);
+            StepResult hookResult = JunitReporterUtils.startCaseHook(
+                    ctx.getReporter(),
+                    hookName,
+                    hookFqn,
+                    true,
+                    null);
             try {
                 invocation.proceed();
             }
             catch (Throwable e) {
-                hookInvocationDetails.end(e);
+                JunitReporterUtils.endCaseHook(
+                        ctx.getReporter(),
+                        hookFqn,
+                        e,
+                        null);
                 throw e;
             }
-            hookInvocationDetails.end();
+            JunitReporterUtils.endCaseHook(
+                    ctx.getReporter(),
+                    hookFqn,
+                    null,
+                    null);
         }
         else
             invocation.proceed();
@@ -397,10 +435,14 @@ public class CbJunitExtension implements
         try {
             ctx.setCurrentTestClass(context.getTestClass().orElse(null));
             ctx.setLastTestException(null);
-            //context.getTestMethod().get().getParameters().
-            JunitReporterUtils.startCase(ctx.getReporter(), context);
+            JunitReporterUtils.startOrGetCase(ctx.getReporter(), context);
+            /*final String testMethodFqn = JunitReporterUtils.getTestMethodFqn(context);
+            CaseResult startedCase = ctx.getReporter().getStartedCase();
+            if (startedCase == null || !startedCase.getFqn().equals(testMethodFqn)) {
+                JunitReporterUtils.startCase(ctx.getReporter(), context);
+            }*/
             // if there are pending "beforeEach" invocations, append them to the test case
-            addPendingBeforeHooks();
+            // addPendingBeforeHooks();
         }
         catch (Exception e) {
             System.err.println("Error in beforeTestExecution: " + e.toString());
@@ -447,7 +489,7 @@ public class CbJunitExtension implements
             return;
         try {
             JunitReporterUtils.failedCase(ctx.getReporter(), context, throwable);
-            addPendingBeforeHooks();
+            // addPendingBeforeHooks();
             ctx.setCurrentTestClass(null);
         }
         catch (Throwable e) {

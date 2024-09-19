@@ -31,6 +31,7 @@ public class CaseResult implements IResultWithAttachment {
     final ArrayList<LogMessage> logs = new ArrayList<>();
     final ArrayList<Attachment> attachments = new ArrayList<>();
     final Map<String, Object> testAttributes = new HashMap<>();
+    final Map<String, Object> context = new HashMap<>();
 
     public CaseResult(String name) {
         this.id = UUID.randomUUID().toString();
@@ -160,6 +161,8 @@ public class CaseResult implements IResultWithAttachment {
     public List<LogMessage> getLogs() { return logs; }
 
     public List<StepResult> getHooks() { return hooks; }
+
+    public Map<String, Object> getContext() { return context; }
 
     @Override
     public void addAttachment(Attachment attachment) {
