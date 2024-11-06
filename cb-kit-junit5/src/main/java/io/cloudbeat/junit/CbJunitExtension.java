@@ -148,6 +148,13 @@ public class CbJunitExtension implements
         ctx.getReporter().addTestAttribute(name, value);
     }
 
+    public static void addOutputData(final String name, final Object value)
+    {
+        if (ctx == null || ctx.getReporter() == null)
+            return;
+        ctx.getReporter().addOutputData(name, value);
+    }
+
     public static void attachScreenRecording(final String videoFilePath) {
         CbTestReporter reporter = getReporter();
         if (reporter != null)

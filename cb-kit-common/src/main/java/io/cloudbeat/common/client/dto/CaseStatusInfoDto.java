@@ -14,7 +14,6 @@ public class CaseStatusInfoDto {
     int iterationsWarning;
     int iterationsSkipped;
     float progress;
-    boolean hasWarnings;
     ArrayList<FailureInfoDto> failures;
 
     public String getId() {
@@ -55,10 +54,6 @@ public class CaseStatusInfoDto {
 
     public float getProgress() {
         return progress;
-    }
-
-    public boolean isHasWarnings() {
-        return hasWarnings;
     }
 
     public ArrayList<FailureInfoDto> getFailures() {
@@ -103,10 +98,6 @@ public class CaseStatusInfoDto {
 
     public void setProgress(float progress) {
         this.progress = progress;
-    }
-
-    public void setHasWarnings(boolean hasWarnings) {
-        this.hasWarnings = hasWarnings;
     }
 
     public void setFailures(ArrayList<FailureInfoDto> failures) {
