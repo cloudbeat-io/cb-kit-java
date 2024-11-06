@@ -162,6 +162,8 @@ public class CaseResult implements IResultWithAttachment {
 
     public List<StepResult> getHooks() { return hooks; }
 
+    public Map<String, Object> getTestAttributes() { return testAttributes; }
+    
     public Map<String, Object> getContext() { return context; }
 
     @Override

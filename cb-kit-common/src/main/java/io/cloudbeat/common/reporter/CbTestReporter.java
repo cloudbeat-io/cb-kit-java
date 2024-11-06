@@ -640,6 +640,19 @@ public class CbTestReporter {
         }
     }
 
+    public void addOutputData(final String name, final Object data)
+    {
+        CaseResult caseResult = lastCaseResult.get();
+        if (caseResult == null)
+            return;
+        OutputDataEntry dataEntry = new OutputDataEntry(name, data);
+        List<OutputDataEntry> outputDataList = caseResult.getContext().containsKey("resultData") ?
+                (List<OutputDataEntry>)caseResult.getContext().get("resultData") : new LinkedList<>();
+        outputDataList.add(dataEntry);
+        if (!caseResult.getContext().containsKey("resultData"))
+            caseResult.getContext().put("resultData", outputDataList);
+    }
+
     public void addScreencastAttachment(final String videoFilePath, final boolean addToStep) {
         final IResultWithAttachment resultWithAttachment;
         if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
