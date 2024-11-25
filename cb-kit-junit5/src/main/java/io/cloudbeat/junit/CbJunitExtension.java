@@ -199,6 +199,13 @@ public class CbJunitExtension implements
             reporter.addScreenshotAttachment(screenshotData, addToStep);
     }
 
+    public static String getRunId() {
+        if (ctx != null && ctx.getConfig() != null) {
+            return ctx.getConfig().getRunId();
+        }
+        return null;
+    }
+
     @Override
     public synchronized void beforeAll(ExtensionContext context) {
         if (!started) {
