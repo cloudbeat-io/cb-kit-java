@@ -65,8 +65,10 @@ public final class HarHelper {
     }
 
     public static void writeHarFile(final HarLog harLog, final File file) throws IOException {
-        String harJsonStr = OBJECT_MAPPER.writeValueAsString(OBJECT_MAPPER);
-        String harJsonWithJsWrapStr = "onInputData(" + harJsonStr + ")";
+        final Map<String, Object> harLogContainerProperty = new HashMap<>();
+        harLogContainerProperty.put("log", harLog);
+        String harLogJsonStr = OBJECT_MAPPER.writeValueAsString(harLogContainerProperty);
+        String harJsonWithJsWrapStr = "onInputData(" + harLogJsonStr + ")";
         FileOutputStream outputStream = new FileOutputStream(file);
         outputStream.write(harJsonWithJsWrapStr.getBytes(StandardCharsets.UTF_8));
         outputStream.close();
