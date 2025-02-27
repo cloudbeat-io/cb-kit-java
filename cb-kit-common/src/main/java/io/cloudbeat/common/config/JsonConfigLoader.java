@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class JsonConfigLoader {
     private static final String SELENIUM_URL_KEY = "seleniumUrl";
@@ -51,11 +52,38 @@ public final class JsonConfigLoader {
             if (rootNode.has("Cases")) {
                 config.cases = new ArrayList<>();
                 for (JsonNode caseNode : rootNode.get("Cases")) {
-                    if (caseNode.get("Fqn") != null)
-                        config.cases.add(caseNode.get("Fqn").asText());
-                    else if (caseNode.get("Details") != null) {
+                    CbConfig.CaseDef caseDef = new CbConfig.CaseDef();
+                    config.cases.add(caseDef);
+                    caseDef.setId(Optional.ofNullable(
+                        caseNode.get("Id") != null ? caseNode.get("Id").asLong() : null)
+                    );
+                    caseDef.setFqn(caseNode.get("Fqn") != null ? caseNode.get("Fqn").asText() : null);
+                    caseDef.setName(caseNode.get("Name") != null ? caseNode.get("Name").asText() : null);
+                    caseDef.setIterationCount(
+                            caseNode.get("IterationCount") != null ?
+                                    caseNode.get("IterationCount").asInt(0) : 0);
+                    caseDef.setParameterData(
+                            caseNode.get("ParameterData") != null ?
+                                    caseNode.get("ParameterData").asText() : null);
+                    caseDef.setScriptType(
+                            (short) (caseNode.get("ScriptType") != null ?
+                                    caseNode.get("ScriptType").asInt(0) : 0));
+
+                    if (caseNode.get("Details") != null) {
                         if (caseNode.get("Details").get("FullyQualifiedName") != null)
-                            config.cases.add(caseNode.get("Details").get("FullyQualifiedName").asText());
+                            caseDef.setFqn(caseNode.get("Details").get("FullyQualifiedName").asText());
+                        caseNode.get("Details").fields().forEachRemaining(f -> {
+                            if (f.getKey().equals("FullyQualifiedName"))
+                                return;
+                            if (f.getValue() != null && f.getValue().canConvertToInt())
+                                caseDef.details.put(f.getKey(), f.getValue().asInt());
+                            else if (f.getValue() != null && f.getValue().canConvertToLong())
+                                caseDef.details.put(f.getKey(), f.getValue().asLong());
+                            else if (f.getValue() != null && f.getValue().isBoolean())
+                                caseDef.details.put(f.getKey(), f.getValue().asBoolean());
+                            else if (f.getValue() != null && !f.getValue().isNull())
+                                caseDef.details.put(f.getKey(), f.getValue().asText());
+                        });
                     }
                 }
             }

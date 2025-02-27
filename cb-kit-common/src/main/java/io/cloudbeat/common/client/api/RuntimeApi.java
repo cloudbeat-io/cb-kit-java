@@ -3,6 +3,7 @@ package io.cloudbeat.common.client.api;
 import io.cloudbeat.common.client.CbClientException;
 import io.cloudbeat.common.client.RetrofitApiBase;
 import io.cloudbeat.common.client.dto.CaseStatusInfoDto;
+import io.cloudbeat.common.client.dto.LoadTestMetricsUpdateRequest;
 import io.cloudbeat.common.client.dto.TestStatusRequest;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
@@ -33,6 +34,13 @@ public class RuntimeApi extends RetrofitApiBase {
     }
     public void updateInstanceStatus(String runId, String instanceId, RunStatus status) throws CbClientException {
         execute(retroApi.updateInstanceStatus(runId, instanceId, status));
+    }
+    public void updateLoadTestMetrics(
+            String runId,
+            String instanceId,
+            LoadTestMetricsUpdateRequest request
+    ) throws CbClientException {
+        executeAsync(retroApi.updateLoadTestMetrics(runId, instanceId, request));
     }
     public void updateTestCaseStatus(
             String runId,

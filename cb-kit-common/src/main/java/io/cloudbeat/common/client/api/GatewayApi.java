@@ -3,6 +3,7 @@ package io.cloudbeat.common.client.api;
 import io.cloudbeat.common.client.CbClientException;
 import io.cloudbeat.common.client.RetrofitApiBase;
 import io.cloudbeat.common.client.dto.CaseStatusInfoDto;
+import io.cloudbeat.common.client.dto.LoadTestMetricsUpdateRequest;
 import io.cloudbeat.common.client.dto.TestStatusRequest;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
@@ -20,7 +21,13 @@ public class GatewayApi extends RetrofitApiBase {
     public GatewayApi(GatewayApiRetro retroApi) {
         this.retroApi = retroApi;
     }
-
+    public void updateLoadTestMetrics(
+            String runId,
+            String instanceId,
+            LoadTestMetricsUpdateRequest request
+    ) throws CbClientException {
+        executeAsync(retroApi.updateLoadTestMetrics(runId, instanceId, request));
+    }
     public void updateTestCaseStatus(
             String runId,
             String instanceId,
