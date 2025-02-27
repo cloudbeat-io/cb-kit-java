@@ -1,6 +1,8 @@
 package io.cloudbeat.common.client.api;
 
 import io.cloudbeat.common.client.CbApiResponse;
+import io.cloudbeat.common.client.dto.CaseMetricsUpdateDto;
+import io.cloudbeat.common.client.dto.LoadTestMetricsUpdateRequest;
 import io.cloudbeat.common.client.dto.TestStatusRequest;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
@@ -25,6 +27,8 @@ public interface RuntimeApiRetro {
     Call<Void> updateInstanceStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body RunStatus status);
     @POST("api/run/{runId}/instance/{instanceId}/case")
     Call<Void> updateTestCaseStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body TestStatusRequest status);
+    @POST("load/api/run/{runId}/instance/{instanceId}/metrics")
+    Call<Void> updateLoadTestMetrics(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body LoadTestMetricsUpdateRequest request);
     @POST("api/run/{runId}/instance/{instanceId}/end")
     Call<Void> endInstance(@Path("runId") String runId, @Path("instanceId") String instanceId);
     @PUT("runs/api/run/{runId}/instance/{instanceId}/result")
