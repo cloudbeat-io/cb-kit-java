@@ -11,6 +11,9 @@
     </parent>
 
     <name>CloudBeat Kit for JUnit 5</name>
+    <description>JUnit 5 integration library for CloudBeat</description>
+    <url>https://github.com/cloudbeat-io/cb-kit-java/tree/main/cb-kit-junit5</url>
+
     <artifactId>cb-kit-junit5</artifactId>
     <packaging>jar</packaging>
 
