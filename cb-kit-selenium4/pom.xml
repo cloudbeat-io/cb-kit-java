@@ -11,6 +11,9 @@
     </parent>
 
     <name>CloudBeat Kit for Selenium 4</name>
+    <description>Selenium 4 integration library for CloudBeat</description>
+    <url>https://github.com/cloudbeat-io/cb-kit-java/tree/main/cb-kit-selenium4</url>
+
     <artifactId>cb-kit-selenium4</artifactId>
     <packaging>jar</packaging>
     
