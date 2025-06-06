@@ -2,8 +2,8 @@ package io.cloudbeat.selenium;
 
 import io.cloudbeat.common.reporter.model.LogLevel;
 import org.openqa.selenium.devtools.events.ConsoleEvent;
-import org.openqa.selenium.devtools.v117.runtime.model.PropertyPreview;
-import org.openqa.selenium.devtools.v117.runtime.model.RemoteObject;
+import org.openqa.selenium.devtools.v131.runtime.model.PropertyPreview;
+import org.openqa.selenium.devtools.v131.runtime.model.RemoteObject;
 
 import java.util.List;
 import java.util.logging.Level;

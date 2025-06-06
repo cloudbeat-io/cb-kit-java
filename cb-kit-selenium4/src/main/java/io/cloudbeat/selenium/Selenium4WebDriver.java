@@ -12,12 +12,12 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.devtools.Command;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
-import org.openqa.selenium.devtools.v117.network.Network;
-import org.openqa.selenium.devtools.v117.network.model.RequestId;
-import org.openqa.selenium.devtools.v117.network.model.ResourceTiming;
-import org.openqa.selenium.devtools.v117.performance.Performance;
-import org.openqa.selenium.devtools.v117.performance.model.Metric;
-import org.openqa.selenium.devtools.v117.runtime.Runtime;
+import org.openqa.selenium.devtools.v131.network.Network;
+import org.openqa.selenium.devtools.v131.network.model.RequestId;
+import org.openqa.selenium.devtools.v131.network.model.ResourceTiming;
+import org.openqa.selenium.devtools.v131.performance.Performance;
+import org.openqa.selenium.devtools.v131.performance.model.Metric;
+import org.openqa.selenium.devtools.v131.runtime.Runtime;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogType;
 
@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings({"deprecation"})
 public class Selenium4WebDriver implements AbstractWebDriver {
     private final WebDriver driver;
     private final DevTools devTools;
