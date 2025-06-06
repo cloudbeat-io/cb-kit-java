@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <properties>
-        <revision>1.0.14</revision>
+        <revision>1.0.15</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aspectj.version>1.9.7</aspectj.version>
     </properties>
@@ -119,9 +119,7 @@
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>3.2.7</version>
                 <configuration>
-                    <!--<skip>true</skip>-->
-                    <gpgExecutable>gpg</gpgExecutable>
-                    <keyname>29D22544178D45A730E0CD116AEDC2E2457C1163</keyname>
+                    <keyname>${gpg.keyname}</keyname>
                     <passphraseServerId>gpg.passphrase</passphraseServerId>
                     <gpgArguments>
                         <arg>--pinentry-mode</arg>

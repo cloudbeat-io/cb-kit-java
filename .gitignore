@@ -28,3 +28,6 @@ target/
 
 # VS Code Files #
 .vscode
+
+.flattened-pom.xml
+.idea/*
