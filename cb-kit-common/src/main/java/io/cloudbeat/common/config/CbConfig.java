@@ -28,6 +28,8 @@ public class CbConfig {
     String runId;
     String runGroup;
     String instanceId;
+    Optional<Integer> instanceIndex;
+    Optional<Integer> instanceCount;
     String projectId;
     String gatewayToken;
     String gatewayUrl;
@@ -102,8 +104,10 @@ public class CbConfig {
     }
     private String getProperty(final String key, final String defaultValue) {
         final String propertyName = getPropertyNameFromConfigKey(key);
-        if (props.containsKey(propertyName))
+        if (props != null && props.containsKey(propertyName))
             return props.getProperty(propertyName);
+        else if (props == null && System.getProperties().containsKey(key))
+            return System.getProperties().getProperty(key, defaultValue);
         return getEnv(key, defaultValue);
     }
 
@@ -149,12 +153,12 @@ public class CbConfig {
 
     public String getGatewayToken() {
         if (gatewayToken == null)
-            return getEnv(CB_GATEWAY_TOKEN, null);
+            return getProperty(CB_GATEWAY_TOKEN);
         return gatewayToken;
     }
     public String getGatewayUrl() {
         if (gatewayUrl == null)
-            return getEnv(CB_GATEWAY_URL, null);
+            return getProperty(CB_GATEWAY_URL);
         return gatewayUrl;
     }
     public String getApiToken() {
@@ -172,7 +176,14 @@ public class CbConfig {
     public String getProjectId() { return projectId; }
 
     public String getInstanceId() { return instanceId; }
-
+    public Optional<Integer> getInstanceIndex() { return instanceIndex; }
+    public void setInstanceCount(Optional<Integer> instanceCount) {
+        this.instanceCount = instanceCount;
+    }
+    public void setInstanceIndex(Optional<Integer> instanceIndex) {
+        this.instanceIndex = instanceIndex;
+    }
+    public Optional<Integer> getInstanceCount() { return instanceCount; }
     public String getRunId() { return runId; }
     public String getRunGroup() { return runGroup; }
 

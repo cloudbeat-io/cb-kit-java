@@ -36,7 +36,8 @@ public final class JsonConfigLoader {
             config.instanceId = rootNode.get("InstanceId").textValue();
             config.instanceId = rootNode.get("InstanceId").textValue();
             config.capabilities = mapper.readValue(rootNode.get("Capabilities").toString(), mapTypeRef);
-            mapFoldedCapabilities(config.capabilities, mapper);
+            if (config.capabilities != null)
+                mapFoldedCapabilities(config.capabilities, mapper);
             // remove technologyName capability, if presented (a left-over from legacy CB)
             if (config.capabilities != null && config.capabilities.containsKey("technologyName"))
                 config.capabilities.remove("technologyName");
@@ -109,6 +110,8 @@ public final class JsonConfigLoader {
     }
 
     private static void mapFoldedCapabilities(Map<String, Object> caps, ObjectMapper mapper) {
+        if (caps == null)
+            return;
         caps.forEach((key, value) -> {
             if (key.endsWith(":options") && value != null && value instanceof String && value.toString().startsWith("{")) {
                 try {

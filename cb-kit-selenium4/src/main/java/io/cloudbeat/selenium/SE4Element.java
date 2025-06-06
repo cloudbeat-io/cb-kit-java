@@ -3,6 +3,7 @@ package io.cloudbeat.selenium;
 import io.cloudbeat.common.wrapper.webdriver.AbstractWebElement;
 import org.openqa.selenium.WebElement;
 
+@SuppressWarnings({"deprecation"})
 public class SE4Element implements AbstractWebElement {
     private final WebElement seElm;
     public SE4Element(WebElement element) {

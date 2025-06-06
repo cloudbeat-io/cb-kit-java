@@ -16,9 +16,9 @@
     
     <properties>
         <!-- Selenium and Appium versions -->
-        <selenium.version>4.14.1</selenium.version>
-        <devtools.version>v117</devtools.version>
-        <appium.version>8.1.1</appium.version>
+        <selenium.version>4.27.0</selenium.version>
+        <devtools.version>v131</devtools.version>
+        <appium.version>9.2.2</appium.version>
     </properties>
 
     <dependencies>
