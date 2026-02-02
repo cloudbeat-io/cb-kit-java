@@ -12,12 +12,12 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.devtools.Command;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
-import org.openqa.selenium.devtools.v131.network.Network;
-import org.openqa.selenium.devtools.v131.network.model.RequestId;
-import org.openqa.selenium.devtools.v131.network.model.ResourceTiming;
-import org.openqa.selenium.devtools.v131.performance.Performance;
-import org.openqa.selenium.devtools.v131.performance.model.Metric;
-import org.openqa.selenium.devtools.v131.runtime.Runtime;
+import org.openqa.selenium.devtools.v143.network.Network;
+import org.openqa.selenium.devtools.v143.network.model.RequestId;
+import org.openqa.selenium.devtools.v143.network.model.ResourceTiming;
+import org.openqa.selenium.devtools.v143.performance.Performance;
+import org.openqa.selenium.devtools.v143.performance.model.Metric;
+import org.openqa.selenium.devtools.v143.runtime.Runtime;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogType;
 
@@ -238,6 +238,8 @@ public class Selenium4WebDriver implements AbstractWebDriver {
             try {
                 devTools.createSessionIfThereIsNotOne();
                 devTools.send(Network.enable(
+                        Optional.empty(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty()));
