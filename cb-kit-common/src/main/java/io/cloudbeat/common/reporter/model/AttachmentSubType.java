@@ -5,7 +5,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum AttachmentSubType {
     IMAGE_SCREENSHOT("screenshot"),
     VIDEO_SCREENCAST("screencast"),
-    NETWORK_HAR("har");
+    NETWORK_HAR("har"),
+    SNAPSHOT_PLAYWRIGHT("playwrightTrace"),
+    SNAPSHOT_XML("xml"),
+    SNAPSHOT_HTML("html"),
+    SNAPSHOT_TEXT("text");
 
     private final String value;
 

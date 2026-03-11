@@ -671,6 +671,7 @@ public class CbTestReporter {
         Attachment attachment = AttachmentHelper.prepareScreencastAttachment(videoFilePath);
         resultWithAttachment.addAttachment(attachment);
     }
+
     public void addScreencastAttachment(final byte[] videoData, final boolean addToStep) {
         final IResultWithAttachment resultWithAttachment;
         if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
@@ -709,7 +710,29 @@ public class CbTestReporter {
         resultWithAttachment.addAttachment(attachment);
     }
 
-
+    public void addPageSourceAttachment(final String pageSource, final boolean addToStep) {
+        final IResultWithAttachment resultWithAttachment;
+        if (addToStep && startedStepsQueue.get() != null && !startedStepsQueue.get().isEmpty()) {
+            resultWithAttachment = startedStepsQueue.get().peek();
+        }
+        else if (!addToStep) {
+            if (lastCaseResult.get() != null)
+                resultWithAttachment = lastCaseResult.get();
+            else if (lastSuiteResult.get() != null)
+                resultWithAttachment = lastSuiteResult.get();
+            else
+                return;
+        }
+        else
+            return;
+        Attachment attachment = AttachmentHelper.preparePageSourceAttachment(pageSource);
+        resultWithAttachment.addAttachment(attachment);
+    }
+    public void addPageSourceAttachment(final String pageSource, final IResultWithAttachment result) {
+        if (result == null) return;
+        Attachment attachment = AttachmentHelper.preparePageSourceAttachment(pageSource);
+        result.addAttachment(attachment);
+    }
 
     private static String getHostName() {
         try {

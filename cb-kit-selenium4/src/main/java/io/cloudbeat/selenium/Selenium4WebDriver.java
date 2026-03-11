@@ -169,6 +169,8 @@ public class Selenium4WebDriver implements AbstractWebDriver {
 
     @Override
     public void addBrowserLogs(List<LogMessage> logs) {
+        if (isSessionClosed(driver))
+            return;
         if (logs == null) return;
         // if we are collecting browser logs through DevTools
         if (isDevToolsConsoleLogsEnabled) {
@@ -207,6 +209,8 @@ public class Selenium4WebDriver implements AbstractWebDriver {
 
     @Override
     public void addLogcatLogs(List<LogMessage> logs) {
+        if (isSessionClosed(driver))
+            return;
         if (logs == null) return;
         LogEntries logcatLogs = driver.manage().logs().get("logcat");
         if (logcatLogs == null)
@@ -224,10 +228,12 @@ public class Selenium4WebDriver implements AbstractWebDriver {
     @Override
     public String getScreenshot() {
         try {
+            if (isSessionClosed(driver))
+                return null;
             String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
             return screenshotBase64;
         }
-        catch (Exception e) {
+        catch (Throwable e) {
             System.err.println("Selenium4WebDriver - failed to take a screenshot: " + e.toString());
         }
         return  null;
@@ -410,6 +416,8 @@ public class Selenium4WebDriver implements AbstractWebDriver {
     }
     public HarLog getHarLog() {
         try {
+            if (isSessionClosed(driver))
+                return null;
             if (!driver.manage().logs().getAvailableLogTypes().contains("performance"))
                 return  null;
             LogEntries perfLogs = driver.manage().logs().get("performance");
@@ -428,5 +436,14 @@ public class Selenium4WebDriver implements AbstractWebDriver {
         harEntriesMap.clear();
         networkLogsLock.unlock();
         return harEntriesCopy;*/
+    }
+    public String getPageSource() {
+        if (isSessionClosed(driver))
+            return null;
+        return driver.getPageSource();
+    }
+    private static boolean isSessionClosed(WebDriver driver) {
+        return driver instanceof org.openqa.selenium.remote.RemoteWebDriver &&
+                ((org.openqa.selenium.remote.RemoteWebDriver) driver).getSessionId() == null;
     }
 }

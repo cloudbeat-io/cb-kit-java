@@ -295,16 +295,31 @@ public class WebDriverEventHandler {
     }
 
     
-    public void onException(final Throwable throwable) {
+    public void onException(final Throwable throwable, boolean takeScreenshot, boolean savePageSource) {
+        String screenshot = null;
+        String pageSource = null;
+        // try to take a screenshot
         try {
-            // try to take a screenshot
-            String screenshot = wrapper.getScreenshot();
-            if (lastStepId != null)
-                reporter.failStep(lastStepId, throwable, screenshot);
-            else
-                reporter.setScreenshotOnException(screenshot);
+            if (takeScreenshot)
+                screenshot = wrapper.getScreenshot();
         }
         catch (Throwable e) {}
+        // try to take a page source
+        try {
+            if (savePageSource)
+                pageSource = wrapper.getPageSource();
+        }
+        catch (Throwable e) {}
+        if (lastStepId != null) {
+            StepResult stepResult = reporter.failStep(lastStepId, throwable, screenshot);
+            if (stepResult != null && pageSource != null)
+                reporter.addPageSourceAttachment(pageSource, stepResult);
+        }
+        else {
+            reporter.setScreenshotOnException(screenshot);
+            if (pageSource != null)
+                reporter.addPageSourceAttachment(pageSource, true);
+        }
     }
     
     public void beforeGetText(final AbstractWebElement elm) {
