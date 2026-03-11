@@ -3,7 +3,6 @@ package io.cloudbeat.common.reporter.model;
 import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.helper.StackTraceHelper;
 import io.cloudbeat.common.helper.WebDriverHelper;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -32,12 +31,12 @@ public class FailureResult {
         StackTraceElement[] filteredStackTrace =
                 StackTraceHelper.getStackTraceStartingFromPackage(throwable.getStackTrace(), testPackageName);
         this.subtype = throwable.getClass().getSimpleName();
-        this.type = throwable.getClass().getSimpleName();
+        this.type = getFailureType(throwable);
         this.data = stackTrace;
         this.stacktrace = StackTraceHelper.stackTraceToStringArray(filteredStackTrace);
         this.message = throwable.getMessage();
         if(this.message == null) {
-            this.message = "UNKNOWN_ERROR ";
+            this.message = "UNKNOWN_ERROR";
         }
         // set location attribute
         if (filteredStackTrace.length > 0) {
@@ -51,6 +50,23 @@ public class FailureResult {
                 && ctx.getCurrentTestClass().getPackage() != null)
             return ctx.getCurrentTestClass().getPackage().getName();
         return null;
+    }
+    private static String getFailureType(Throwable throwable) {
+        String className = throwable.getClass().getName();
+        if (className.startsWith("org.openqa.selenium")) {
+            String simpleName = throwable.getClass().getSimpleName();
+            if (simpleName.equals("NoSuchElementException"))
+                return "ELEMENT_NOT_FOUND";
+            if (simpleName.equals("TimeoutException"))
+                return "TIMEOUT";
+            if (simpleName.equals("ElementNotVisibleException")
+                    || simpleName.equals("ElementNotInteractableException"))
+                return "ELEMENT_NOT_VISIBLE";
+            return "SELENIUM_ERROR";
+        }
+        if (throwable instanceof AssertionError)
+            return "ASSERT_ERROR";
+        return FAILURE_TYPE;
     }
 
     public String getType() {

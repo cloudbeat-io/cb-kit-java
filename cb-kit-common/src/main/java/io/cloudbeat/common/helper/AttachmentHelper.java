@@ -10,6 +10,7 @@ import io.cloudbeat.common.reporter.model.AttachmentSubType;
 import io.cloudbeat.common.reporter.model.AttachmentType;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +51,20 @@ public final class AttachmentHelper {
         if (pngFilePath == null) return  null;
         try {
             Files.write(pngFilePath, data);
+        } catch (IOException e) {
+            return  null;
+        }
+        return attachment;
+    }
+    public static Attachment preparePageSourceAttachment(final String pageSource) {
+        if (pageSource == null) return null;
+        Attachment attachment = new Attachment(AttachmentType.SNAPSHOT);
+        attachment.setSubtype(AttachmentSubType.SNAPSHOT_HTML);
+        final String fileExtension = "htm";
+        Path htmlFilePath = getAttachmentFilePath(attachment, fileExtension);
+        if (htmlFilePath == null) return  null;
+        try {
+            Files.write(htmlFilePath, pageSource.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             return  null;
         }

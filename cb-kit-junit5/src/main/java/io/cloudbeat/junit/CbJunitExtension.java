@@ -11,6 +11,7 @@ import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 
 import io.cloudbeat.common.wrapper.webdriver.WebDriverWrapper;
+import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.*;
 
@@ -98,6 +99,9 @@ public class CbJunitExtension implements
 
     public static <D> D wrapWebDriver(D driver) {
         return ctx.wrapWebDriver(driver);
+    }
+    public static <D> D wrapWebDriver(D driver, WrapperOptions options) {
+        return ctx.wrapWebDriver(driver, options);
     }
 
     public static <D, L> L getWebDriverListener(D driver) {

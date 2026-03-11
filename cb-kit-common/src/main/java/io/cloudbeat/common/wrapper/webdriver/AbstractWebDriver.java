@@ -26,4 +26,5 @@ public interface AbstractWebDriver {
     public void disableDevToolsNetworkCapturing();
     public HarLog getHarLog();
     public String getScreenshot();
+    public String getPageSource();
 }

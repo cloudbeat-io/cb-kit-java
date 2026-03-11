@@ -8,7 +8,8 @@ public enum AttachmentType {
     TEXT("text"),
     LOG("log"),
     HAR("har"),
-    OTHER("other");
+    OTHER("other"),
+    SNAPSHOT("snapshot");
 
     private final String value;
 

@@ -31,7 +31,7 @@ public class CbWebDriverListener implements WebDriverListener {
     @Override
     public void onError(Object target, Method method, Object[] args, InvocationTargetException e) {
         if (e.getTargetException() != null)
-            eventHandler.onException(e.getTargetException());
+            eventHandler.onException(e.getTargetException(), options.isTakeScreenshotOnError(), options.isSavePageSourceOnError());
         WebDriverListener.super.onError(target, method, args, e);
     }
 
