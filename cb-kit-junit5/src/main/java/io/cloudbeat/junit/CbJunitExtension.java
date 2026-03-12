@@ -184,6 +184,18 @@ public class CbJunitExtension implements
         return true;
     }
 
+    public static void attachPageSource(final String pageSource) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addPageSourceAttachment(pageSource, true);
+    }
+
+    public static void attachPageSource(final String pageSource, boolean addToStep) {
+        CbTestReporter reporter = getReporter();
+        if (reporter != null)
+            reporter.addPageSourceAttachment(pageSource, addToStep);
+    }
+
     private static String getVideoName(final TestInfo testInfo) {
         if (testInfo.getTestMethod().isPresent()) {
             return Math.abs(testInfo.getTestMethod().get().hashCode()) + "";
