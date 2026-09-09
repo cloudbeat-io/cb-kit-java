@@ -5,6 +5,9 @@ import io.cloudbeat.common.client.CbApiHttpClient;
 import io.cloudbeat.common.client.CbGatewayHttpClient;
 import io.cloudbeat.common.client.api.GatewayApi;
 import io.cloudbeat.common.client.api.RuntimeApi;
+import io.cloudbeat.common.client.dto.CaseStatusUpdateRequest;
+import io.cloudbeat.common.client.dto.RunStatusEnum;
+import io.cloudbeat.common.client.dto.SuiteStatusUpdateRequest;
 import io.cloudbeat.common.config.CbConfig;
 import io.cloudbeat.common.helper.AttachmentHelper;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
@@ -185,6 +188,7 @@ public class CbTestReporter {
         startedStepsQueue.remove();
         lastScreenshotOnException.remove();
         lastSuiteResult.set(newSuite);
+        reportRuntimeSuiteStatus(newSuite, RunStatusEnum.RUNNING);
         return newSuite;
     }
 
@@ -211,6 +215,7 @@ public class CbTestReporter {
         if (startedSuite == null || !startedSuite.getFqn().equals(fqn))
             return null;
         startedSuite.end();
+        reportRuntimeSuiteStatus(startedSuite, RunStatusEnum.FINISHED);
         return startedSuite;
     }
 
@@ -219,6 +224,7 @@ public class CbTestReporter {
             return null;
         SuiteResult startedSuite = lastSuiteResult.get();
         startedSuite.end();
+        reportRuntimeSuiteStatus(startedSuite, RunStatusEnum.FINISHED);
         return startedSuite;
     }
 
@@ -235,6 +241,7 @@ public class CbTestReporter {
         startedStepsQueue.remove();
         lastCaseResult.set(newCase);
         reportCaseStatus(newCase, Optional.empty(), null);
+        reportRuntimeCaseStatus(newCase, startedSuite, RunStatusEnum.RUNNING);
 
         return newCase;
     }
@@ -271,6 +278,7 @@ public class CbTestReporter {
             endStartedSteps(status, throwable);
             startedCase.end(status, throwable);
             reportCaseStatus(startedCase, Optional.of(startedCase.getStatus()), throwable);
+            reportRuntimeCaseStatus(startedCase, lastSuiteResult.get(), RunStatusEnum.FINISHED);
         }
 
         return startedCase;
@@ -300,6 +308,120 @@ public class CbTestReporter {
                         startedCase.getFailure());
         } catch (CbClientException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Reports a case's status to the new Redis-backed runtime status API that feeds the live
+     * progress screen. Gateway-only (this API has no public-API-key equivalent), best-effort:
+     * failures are swallowed so live-status reporting can never break the actual test run.
+     */
+    private void reportRuntimeCaseStatus(final CaseResult caseResult, final SuiteResult parentSuite, final RunStatusEnum runStatus) {
+        if (!config.isRunningInCb() || !this.gatewayApi.isPresent())
+            return;
+        try {
+            CaseStatusUpdateRequest req = new CaseStatusUpdateRequest();
+            req.setTimestamp(System.currentTimeMillis());
+            req.setRunId(result.getRunId());
+            req.setInstanceId(result.getInstanceId());
+            req.setId(caseResult.getId());
+            req.setFqn(caseResult.getFqn());
+            req.setName(caseResult.getName());
+            req.setDisplayName(caseResult.getDisplayName());
+            if (parentSuite != null) {
+                req.setParentFqn(parentSuite.getFqn());
+                req.setParentId(parentSuite.getId());
+                req.setParentName(parentSuite.getName());
+            }
+            req.setStartTime(caseResult.getStartTime());
+            req.setEndTime(caseResult.getEndTime());
+            req.setRunStatus(runStatus);
+            req.setTestStatus(caseResult.getStatus());
+            req.setFramework(frameworkName);
+            req.setLanguage(language);
+            this.gatewayApi.get().updateRuntimeCaseStatus(req);
+        } catch (CbClientException e) {
+            // best-effort - never fail the test run because live-status reporting failed
+        }
+    }
+
+    /**
+     * Announces a suite that will run, before it actually starts - lets the live progress screen
+     * show the full picture upfront instead of only revealing suites one at a time as each one
+     * happens to begin. Unlike {@link #reportRuntimeSuiteStatus}, there's no real SuiteResult yet
+     * (it hasn't started), so this builds the update request directly and never touches `result`.
+     */
+    public void reportPendingSuite(final String name, final String fqn) {
+        if (!config.isRunningInCb() || !this.gatewayApi.isPresent() || result == null)
+            return;
+        try {
+            SuiteStatusUpdateRequest req = new SuiteStatusUpdateRequest();
+            req.setTimestamp(System.currentTimeMillis());
+            req.setRunId(result.getRunId());
+            req.setInstanceId(result.getInstanceId());
+            req.setId(UUID.randomUUID().toString());
+            req.setFqn(fqn);
+            req.setName(name);
+            req.setRunStatus(RunStatusEnum.PENDING);
+            req.setFramework(frameworkName);
+            req.setLanguage(language);
+            this.gatewayApi.get().updateRuntimeSuiteStatus(req);
+        } catch (CbClientException e) {
+            // best-effort - never fail the test run because live-status reporting failed
+        }
+    }
+
+    /**
+     * Announces a case that will run, before it actually starts. See {@link #reportPendingSuite}.
+     */
+    public void reportPendingCase(final String name, final String fqn, final String parentFqn, final String parentName) {
+        if (!config.isRunningInCb() || !this.gatewayApi.isPresent() || result == null)
+            return;
+        try {
+            CaseStatusUpdateRequest req = new CaseStatusUpdateRequest();
+            req.setTimestamp(System.currentTimeMillis());
+            req.setRunId(result.getRunId());
+            req.setInstanceId(result.getInstanceId());
+            req.setId(UUID.randomUUID().toString());
+            req.setFqn(fqn);
+            req.setName(name);
+            if (parentFqn != null) {
+                req.setParentFqn(parentFqn);
+                req.setParentName(parentName);
+            }
+            req.setRunStatus(RunStatusEnum.PENDING);
+            req.setFramework(frameworkName);
+            req.setLanguage(language);
+            this.gatewayApi.get().updateRuntimeCaseStatus(req);
+        } catch (CbClientException e) {
+            // best-effort - never fail the test run because live-status reporting failed
+        }
+    }
+
+    /**
+     * Reports a suite's status to the new Redis-backed runtime status API. See
+     * {@link #reportRuntimeCaseStatus} for the gating/best-effort rationale.
+     */
+    private void reportRuntimeSuiteStatus(final SuiteResult suiteResult, final RunStatusEnum runStatus) {
+        if (!config.isRunningInCb() || !this.gatewayApi.isPresent())
+            return;
+        try {
+            SuiteStatusUpdateRequest req = new SuiteStatusUpdateRequest();
+            req.setTimestamp(System.currentTimeMillis());
+            req.setRunId(result.getRunId());
+            req.setInstanceId(result.getInstanceId());
+            req.setId(suiteResult.getId());
+            req.setFqn(suiteResult.getFqn());
+            req.setName(suiteResult.getName());
+            req.setStartTime(suiteResult.getStartTime());
+            req.setEndTime(suiteResult.getEndTime());
+            req.setRunStatus(runStatus);
+            req.setTestStatus(suiteResult.getStatus());
+            req.setFramework(frameworkName);
+            req.setLanguage(language);
+            this.gatewayApi.get().updateRuntimeSuiteStatus(req);
+        } catch (CbClientException e) {
+            // best-effort - never fail the test run because live-status reporting failed
         }
     }
 

@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
 
-//@AutoService(TestExecutionListener.class)
 public class CbJunitExtension implements
         BeforeAllCallback,
         BeforeEachCallback,

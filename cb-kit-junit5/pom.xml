@@ -35,5 +35,19 @@
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.jupiter.version}</version>
         </dependency>
+        <!-- Platform-level launcher API, needed for the TestExecutionListener that reports
+             the full test plan as Pending before any test starts (see CbJunitExecutionListener).
+             "provided": needed to compile this module, but must NOT be forced as a transitive,
+             version-pinned dependency onto consumers - a consumer project resolving its own
+             jupiter-engine as LATEST (as examples-java-junit does) would get a version-skewed,
+             stale launcher otherwise, which breaks test discovery entirely ("TestEngine with ID
+             'junit-jupiter' failed to discover tests"). Each consumer must supply its own
+             matching junit-platform-launcher (e.g. also as LATEST, alongside its jupiter deps). -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.9.1</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

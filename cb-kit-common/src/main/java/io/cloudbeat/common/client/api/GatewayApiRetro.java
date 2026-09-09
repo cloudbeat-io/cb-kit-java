@@ -1,6 +1,8 @@
 package io.cloudbeat.common.client.api;
 
+import io.cloudbeat.common.client.dto.CaseStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.LoadTestMetricsUpdateRequest;
+import io.cloudbeat.common.client.dto.SuiteStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.TestStatusRequest;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -12,4 +14,8 @@ public interface GatewayApiRetro {
     Call<Void> updateTestCaseStatus(@Body TestStatusRequest statusRequest);
     @POST("testresult/load/run/{runId}/instance/{instanceId}/metrics")
     Call<Void> updateLoadTestMetrics(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body LoadTestMetricsUpdateRequest request);
+    @POST("testresult/runtime/run/{runId}/instance/{instanceId}/case/status")
+    Call<Void> updateRuntimeCaseStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body CaseStatusUpdateRequest request);
+    @POST("testresult/runtime/run/{runId}/instance/{instanceId}/suite/status")
+    Call<Void> updateRuntimeSuiteStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body SuiteStatusUpdateRequest request);
 }

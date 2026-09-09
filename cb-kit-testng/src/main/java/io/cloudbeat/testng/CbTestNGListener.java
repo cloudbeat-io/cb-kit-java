@@ -220,8 +220,12 @@ public class CbTestNGListener implements
 
     @Override
     public void onStart(ISuite suite) {
-        if (ctx.isActive())
+        if (ctx.isActive()) {
+            // announce all methods this suite will run as Pending before marking the suite itself
+            // Running, mirroring the order the Cypress/JUnit5 reporters use for the same purpose
+            CbTestNGReporter.reportPendingMethods(ctx.getReporter(), suite);
             CbTestNGReporter.startSuite(ctx.getReporter(), suite);
+        }
     }
 
     @Override

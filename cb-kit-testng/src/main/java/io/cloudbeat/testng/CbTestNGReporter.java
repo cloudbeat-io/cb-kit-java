@@ -48,6 +48,24 @@ public final class CbTestNGReporter {
         return sb.toString();
     }
 
+    /**
+     * Announces every test method the suite is about to run as Pending, before any of them
+     * actually start - lets the live progress screen show the full picture upfront instead of
+     * only revealing methods one at a time as onTestStart happens to fire for each.
+     * suite.getAllMethods() already gives the complete, suite-wide list TestNG resolved before
+     * execution began, so unlike JUnit5 (see CbJunitExecutionListener) no extra listener is needed.
+     */
+    public static void reportPendingMethods(CbTestReporter reporter, ISuite suite) {
+        if (!reporter.getInstance().isPresent())
+            return;
+        final String suiteFqn = generateFqnForSuite(suite.getXmlSuite());
+        for (ITestNGMethod testMethod : suite.getAllMethods()) {
+            final String methodDisplayName = testMethod.getMethodName();
+            final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
+            reporter.reportPendingCase(methodDisplayName, methodFqn, suiteFqn, suite.getName());
+        }
+    }
+
     public static void endSuite(CbTestReporter reporter, ISuite suite) {
         if (!reporter.getInstance().isPresent())
             return;
