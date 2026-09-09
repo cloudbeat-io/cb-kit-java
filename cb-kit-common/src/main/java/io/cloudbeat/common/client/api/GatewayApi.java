@@ -3,7 +3,9 @@ package io.cloudbeat.common.client.api;
 import io.cloudbeat.common.client.CbClientException;
 import io.cloudbeat.common.client.RetrofitApiBase;
 import io.cloudbeat.common.client.dto.CaseStatusInfoDto;
+import io.cloudbeat.common.client.dto.CaseStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.LoadTestMetricsUpdateRequest;
+import io.cloudbeat.common.client.dto.SuiteStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.TestStatusRequest;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
@@ -70,5 +72,13 @@ public class GatewayApi extends RetrofitApiBase {
             req.getCase().getFailures().add(failureInfo);
         }
         executeAsync(retroApi.updateTestCaseStatus(req));
+    }
+
+    public void updateRuntimeCaseStatus(CaseStatusUpdateRequest request) throws CbClientException {
+        executeAsync(retroApi.updateRuntimeCaseStatus(request.getRunId(), request.getInstanceId(), request));
+    }
+
+    public void updateRuntimeSuiteStatus(SuiteStatusUpdateRequest request) throws CbClientException {
+        executeAsync(retroApi.updateRuntimeSuiteStatus(request.getRunId(), request.getInstanceId(), request));
     }
 }
