@@ -18,10 +18,9 @@
     <packaging>jar</packaging>
     
     <properties>
-        <!-- Selenium and Appium versions -->
+        <!-- Selenium versions -->
         <selenium.version>4.39.0</selenium.version>
         <devtools.version>v143</devtools.version>
-        <appium.version>9.2.2</appium.version>
     </properties>
 
     <dependencies>
@@ -62,11 +61,18 @@
             <artifactId>selenium-devtools-${devtools.version}</artifactId>
             <version>${selenium.version}</version>
         </dependency>
-        <!-- Appium -->
+        <!-- used directly by the HAR-processing classes in io.cloudbeat.selenium.har - moved
+             here from cb-kit-common (which has no use for either) since that module was only
+             supplying them transitively via the otherwise-unused cxf-bundle-jaxrs bundle -->
         <dependency>
-            <groupId>io.appium</groupId>
-            <artifactId>java-client</artifactId>
-            <version>${appium.version}</version>
-        </dependency>        
+            <groupId>org.codehaus.jettison</groupId>
+            <artifactId>jettison</artifactId>
+            <version>1.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.1</version>
+        </dependency>
     </dependencies>
 </project>

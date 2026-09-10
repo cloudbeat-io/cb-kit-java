@@ -2,18 +2,12 @@ package io.cloudbeat.common.har;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudbeat.common.har.model.*;
-import io.cloudbeat.common.model.HttpNetworkEntry;
-import okio.Path;
-import org.apache.cxf.helpers.FileUtils;
 
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;

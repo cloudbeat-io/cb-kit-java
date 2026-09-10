@@ -16,7 +16,6 @@
 
     <properties>
         <junit.version>4.12</junit.version>
-        <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -28,11 +27,6 @@
             <version>${revision}</version>
         </dependency>
         <!-- JUnit 4 -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
-        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
