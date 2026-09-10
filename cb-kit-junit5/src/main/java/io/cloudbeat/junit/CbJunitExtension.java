@@ -197,10 +197,12 @@ public class CbJunitExtension implements
     }
 
     private static String getVideoName(final TestInfo testInfo) {
-        if (testInfo.getTestMethod().isPresent()) {
-            return Math.abs(testInfo.getTestMethod().get().hashCode()) + "";
+        // getCapabilities() can be called with no TestInfo at all (e.g. from driver setup code
+        // that runs outside a test method's own parameter list, like DriverManager.getDriver())
+        if (testInfo == null || !testInfo.getTestMethod().isPresent()) {
+            return null;
         }
-        return null;
+        return Math.abs(testInfo.getTestMethod().get().hashCode()) + "";
     }
 
     public static void attachScreenshot(final byte[] screenshotData) {
