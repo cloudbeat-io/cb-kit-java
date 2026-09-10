@@ -10,6 +10,7 @@ import io.cloudbeat.common.reporter.CbTestReporter;
 import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 
+import io.cloudbeat.common.wrapper.webdriver.AbstractWebDriver;
 import io.cloudbeat.common.wrapper.webdriver.WebDriverWrapper;
 import io.cloudbeat.common.wrapper.webdriver.WrapperOptions;
 import org.junit.jupiter.api.TestInfo;
@@ -484,6 +485,8 @@ public class CbJunitExtension implements
             return;
         try {
             ctx.setLastTestException(context.getExecutionException().orElse(null));
+            if (context.getExecutionException().isPresent())
+                captureFailureScreenshotIfMissing();
             JunitReporterUtils.endCase(ctx.getReporter(), context);
             ctx.setCurrentTestClass(null);
         }
@@ -517,6 +520,9 @@ public class CbJunitExtension implements
         if (!ctx.isActive())
             return;
         try {
+            // covers e.g. a beforeEach/beforeAll hook failure, where afterTestExecution never
+            // fires at all since the test method itself never got a chance to run
+            captureFailureScreenshotIfMissing();
             JunitReporterUtils.failedCase(ctx.getReporter(), context, throwable);
             // addPendingBeforeHooks();
             ctx.setCurrentTestClass(null);
@@ -524,6 +530,18 @@ public class CbJunitExtension implements
         catch (Throwable e) {
             System.err.println("Error in testFailed: " + e.toString());
         }
+    }
+
+    /**
+     * Proactively captures a screenshot on ANY test failure where a WebDriver session is active -
+     * not just ones where the WebDriver command itself threw (see CbTestReporter's Javadoc on
+     * setScreenshotOnExceptionIfMissing for why a plain assertion failure needs this too).
+     */
+    private void captureFailureScreenshotIfMissing() {
+        ctx.getReporter().setScreenshotOnExceptionIfMissing(() -> {
+            AbstractWebDriver driver = ctx.getAbstractWebDriver();
+            return driver != null ? driver.getScreenshot() : null;
+        });
     }
 
     private void setup(final ExtensionContext context) {
