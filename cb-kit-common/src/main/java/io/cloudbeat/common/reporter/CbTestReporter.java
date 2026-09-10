@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class CbTestReporter {
     //private static final Logger LOGGER = LoggerFactory.getLogger(CbTestReporter.class);
@@ -229,6 +230,10 @@ public class CbTestReporter {
     }
 
     public CaseResult startCase(final String name, final String fqn) {
+        return startCase(name, fqn, null);
+    }
+
+    public CaseResult startCase(final String name, final String fqn, final String displayName) {
         SuiteResult startedSuite = lastSuiteResult.get();
         if (startedSuite == null) {
             if (result.getSuites().size() > 0)
@@ -238,6 +243,12 @@ public class CbTestReporter {
         }
         CaseResult newCase = startedSuite.addNewCaseResult(name);
         newCase.setFqn(fqn);
+        // must be set before reportRuntimeCaseStatus below, which reads getDisplayName() - setting
+        // it after startCase returns (as callers used to do) means the first "Running" status
+        // ping always goes out with a null displayName, so the live status screen falls back to
+        // showing the raw method name instead, even though it later gets it right
+        if (displayName != null)
+            newCase.setDisplayName(displayName);
         startedStepsQueue.remove();
         lastCaseResult.set(newCase);
         reportCaseStatus(newCase, Optional.empty(), null);
@@ -276,6 +287,21 @@ public class CbTestReporter {
         // so make sure we do not update the status and report it back to CB twice
         if (startedCase.getStatus() == null) {
             endStartedSteps(status, throwable);
+            // a WebDriver command failure right before this exception may have auto-captured a
+            // screenshot (see WebDriverEventHandler.onException -> setScreenshotOnException), but
+            // that only gets consumed by a step's own end() call - if the failure surfaced
+            // directly in the test method rather than inside an explicit step()/startStep() block,
+            // there was never an open step to claim it, and it would otherwise be silently
+            // dropped. Attach it directly to this case instead (not via the ThreadLocal-based
+            // addScreenshotAttachment helper, since lastCaseResult might not be `startedCase`
+            // when endCase is reached via the fqn-lookup overload).
+            if (throwable != null && lastScreenshotOnException.get() != null) {
+                Attachment screenshotAttachment = AttachmentHelper.prepareScreenshotAttachment(
+                        Base64.getDecoder().decode(lastScreenshotOnException.get()));
+                if (screenshotAttachment != null)
+                    startedCase.addAttachment(screenshotAttachment);
+                lastScreenshotOnException.remove();
+            }
             startedCase.end(status, throwable);
             reportCaseStatus(startedCase, Optional.of(startedCase.getStatus()), throwable);
             reportRuntimeCaseStatus(startedCase, lastSuiteResult.get(), RunStatusEnum.FINISHED);
@@ -699,6 +725,25 @@ public class CbTestReporter {
 
     public void setScreenshotOnException(String base64Data) {
         this.lastScreenshotOnException.set(base64Data);
+    }
+
+    /**
+     * Like {@link #setScreenshotOnException}, but only invokes the (potentially expensive)
+     * supplier if nothing is already pending - used to proactively capture a screenshot on ANY
+     * test failure (e.g. a plain assertion that fails after WebDriver already returned data
+     * successfully), without overwriting a more relevant one already captured at the exact
+     * moment a WebDriver command itself threw (see WebDriverEventHandler.onException).
+     */
+    public void setScreenshotOnExceptionIfMissing(final Supplier<String> screenshotSupplier) {
+        if (this.lastScreenshotOnException.get() != null)
+            return;
+        try {
+            String screenshot = screenshotSupplier.get();
+            if (screenshot != null)
+                this.lastScreenshotOnException.set(screenshot);
+        } catch (Throwable e) {
+            // best-effort - never fail the test run because screenshot capture failed
+        }
     }
 
     public void logInfo(final String message) {

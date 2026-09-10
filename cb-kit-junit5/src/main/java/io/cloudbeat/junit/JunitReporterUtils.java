@@ -50,8 +50,7 @@ public class JunitReporterUtils {
         final String classFqn = context.getTestClass().get().getName();
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
-        CaseResult caseResult = reporter.startCase(methodName, methodFqn);
-        caseResult.setDisplayName(context.getDisplayName());
+        CaseResult caseResult = reporter.startCase(methodName, methodFqn, context.getDisplayName());
         caseResultByUniqueId.get().put(uniqueId, caseResult);
         return caseResult;
     }
@@ -80,7 +79,7 @@ public class JunitReporterUtils {
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
         //CbTestReporter reporter = CbTestContext.getReporter();
-        reporter.startCase(methodName, methodFqn);
+        reporter.startCase(methodName, methodFqn, context.getDisplayName());
         reporter.skipCase(methodFqn);
     }
     public static void failedCase(
@@ -93,7 +92,7 @@ public class JunitReporterUtils {
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
 
         if (reporter.getStartedCase() == null) {
-            CaseResult startedCase = reporter.startCase(methodName, methodFqn);
+            CaseResult startedCase = reporter.startCase(methodName, methodFqn, context.getDisplayName());
             // startedCase.setStartTime( <set the same start time as the parent suite> );
         }
 
