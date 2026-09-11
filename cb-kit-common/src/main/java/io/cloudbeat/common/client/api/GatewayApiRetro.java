@@ -9,6 +9,8 @@ import retrofit2.http.Body;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 
+import java.util.List;
+
 public interface GatewayApiRetro {
     @POST("testresult/Status")
     Call<Void> updateTestCaseStatus(@Body TestStatusRequest statusRequest);
@@ -16,6 +18,8 @@ public interface GatewayApiRetro {
     Call<Void> updateLoadTestMetrics(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body LoadTestMetricsUpdateRequest request);
     @POST("testresult/runtime/run/{runId}/instance/{instanceId}/case/status")
     Call<Void> updateRuntimeCaseStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body CaseStatusUpdateRequest request);
+    @POST("testresult/runtime/run/{runId}/instance/{instanceId}/case/status/bulk")
+    Call<Void> bulkUpdateRuntimeCaseStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body List<CaseStatusUpdateRequest> requests);
     @POST("testresult/runtime/run/{runId}/instance/{instanceId}/suite/status")
     Call<Void> updateRuntimeSuiteStatus(@Path("runId") String runId, @Path("instanceId") String instanceId, @Body SuiteStatusUpdateRequest request);
 }

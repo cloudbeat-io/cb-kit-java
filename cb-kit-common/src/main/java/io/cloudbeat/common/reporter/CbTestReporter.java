@@ -425,6 +425,59 @@ public class CbTestReporter {
     }
 
     /**
+     * A case's name/fqn/parent, as known upfront during test discovery - before any CaseResult
+     * exists. See {@link #reportPendingCases}.
+     */
+    public static class PendingCaseInfo {
+        public final String name;
+        public final String fqn;
+        public final String parentFqn;
+        public final String parentName;
+
+        public PendingCaseInfo(String name, String fqn, String parentFqn, String parentName) {
+            this.name = name;
+            this.fqn = fqn;
+            this.parentFqn = parentFqn;
+            this.parentName = parentName;
+        }
+    }
+
+    /**
+     * Announces every case that will run, before any of them start - the bulk equivalent of
+     * {@link #reportPendingCase}. A whole suite's worth of cases reported one at a time each pays
+     * its own HTTP round trip, throttled by OkHttp's default 5-concurrent-per-host cap, so the
+     * full Pending list can take a while to finish populating on the live progress screen for a
+     * suite with many test methods. Sending them all in a single request avoids that entirely.
+     */
+    public void reportPendingCases(final List<PendingCaseInfo> cases) {
+        if (!config.isRunningInCb() || !this.gatewayApi.isPresent() || result == null || cases.isEmpty())
+            return;
+        try {
+            List<CaseStatusUpdateRequest> reqList = new ArrayList<>(cases.size());
+            for (PendingCaseInfo c : cases) {
+                CaseStatusUpdateRequest req = new CaseStatusUpdateRequest();
+                req.setTimestamp(System.currentTimeMillis());
+                req.setRunId(result.getRunId());
+                req.setInstanceId(result.getInstanceId());
+                req.setId(UUID.randomUUID().toString());
+                req.setFqn(c.fqn);
+                req.setName(c.name);
+                if (c.parentFqn != null) {
+                    req.setParentFqn(c.parentFqn);
+                    req.setParentName(c.parentName);
+                }
+                req.setRunStatus(RunStatusEnum.PENDING);
+                req.setFramework(frameworkName);
+                req.setLanguage(language);
+                reqList.add(req);
+            }
+            this.gatewayApi.get().bulkUpdateRuntimeCaseStatus(result.getRunId(), result.getInstanceId(), reqList);
+        } catch (CbClientException e) {
+            // best-effort - never fail the test run because live-status reporting failed
+        }
+    }
+
+    /**
      * Reports a suite's status to the new Redis-backed runtime status API. See
      * {@link #reportRuntimeCaseStatus} for the gating/best-effort rationale.
      */
