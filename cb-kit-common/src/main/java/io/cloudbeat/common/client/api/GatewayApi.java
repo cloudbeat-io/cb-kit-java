@@ -16,6 +16,7 @@ import io.cloudbeat.common.reporter.model.TestStatus;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Optional;
 
 public class GatewayApi extends RetrofitApiBase {
@@ -76,6 +77,10 @@ public class GatewayApi extends RetrofitApiBase {
 
     public void updateRuntimeCaseStatus(CaseStatusUpdateRequest request) throws CbClientException {
         executeAsync(retroApi.updateRuntimeCaseStatus(request.getRunId(), request.getInstanceId(), request));
+    }
+
+    public void bulkUpdateRuntimeCaseStatus(String runId, String instanceId, List<CaseStatusUpdateRequest> requests) throws CbClientException {
+        executeAsync(retroApi.bulkUpdateRuntimeCaseStatus(runId, instanceId, requests));
     }
 
     public void updateRuntimeSuiteStatus(SuiteStatusUpdateRequest request) throws CbClientException {

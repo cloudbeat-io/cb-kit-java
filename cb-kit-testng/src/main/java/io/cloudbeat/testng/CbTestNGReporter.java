@@ -1,6 +1,7 @@
 package io.cloudbeat.testng;
 
 import io.cloudbeat.common.reporter.CbTestReporter;
+import io.cloudbeat.common.reporter.CbTestReporter.PendingCaseInfo;
 import io.cloudbeat.common.reporter.model.CaseResult;
 import io.cloudbeat.common.reporter.model.StepResult;
 import io.cloudbeat.common.reporter.model.SuiteResult;
@@ -11,6 +12,8 @@ import org.testng.ITestNGMethod;
 import org.testng.ITestResult;
 import org.testng.xml.XmlSuite;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -59,11 +62,14 @@ public final class CbTestNGReporter {
         if (!reporter.getInstance().isPresent())
             return;
         final String suiteFqn = generateFqnForSuite(suite.getXmlSuite());
+        // collected and sent as a single bulk request - see CbTestReporter.reportPendingCases
+        List<PendingCaseInfo> pendingCases = new ArrayList<>();
         for (ITestNGMethod testMethod : suite.getAllMethods()) {
             final String methodDisplayName = testMethod.getMethodName();
             final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
-            reporter.reportPendingCase(methodDisplayName, methodFqn, suiteFqn, suite.getName());
+            pendingCases.add(new PendingCaseInfo(methodDisplayName, methodFqn, suiteFqn, suite.getName()));
         }
+        reporter.reportPendingCases(pendingCases);
     }
 
     public static void endSuite(CbTestReporter reporter, ISuite suite) {
