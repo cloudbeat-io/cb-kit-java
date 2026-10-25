@@ -23,6 +23,7 @@ public @interface CbLink {
     public static final String TYPE_STORY = "story";
     public static final String TYPE_TASK = "task";
     public static final String TYPE_TEST_PLAN = "plan";
+    public static final String TYPE_TEST_EXECUTION = "exec";
     public static final String TYPE_TEST_CASE = "case";
     public static final String TYPE_TEST_BUG = "bug";
 }
