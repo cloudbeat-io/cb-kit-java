@@ -9,7 +9,9 @@ import io.cloudbeat.common.client.dto.CaseStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.RunStatusEnum;
 import io.cloudbeat.common.client.dto.SuiteStatusUpdateRequest;
 import io.cloudbeat.common.config.CbConfig;
+import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.helper.AttachmentHelper;
+import io.cloudbeat.common.helper.AutomationInfoHelper;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
 import io.cloudbeat.common.reporter.model.*;
@@ -302,12 +304,26 @@ public class CbTestReporter {
                     startedCase.addAttachment(screenshotAttachment);
                 lastScreenshotOnException.remove();
             }
+            addAutomationInfo(startedCase);
             startedCase.end(status, throwable);
             reportCaseStatus(startedCase, Optional.of(startedCase.getStatus()), throwable);
             reportRuntimeCaseStatus(startedCase, lastSuiteResult.get(), RunStatusEnum.FINISHED);
         }
 
         return startedCase;
+    }
+
+    /** Records which engine the test drove (Appium or Selenium, platform, device): context entry "automation". */
+    private void addAutomationInfo(CaseResult caseResult) {
+        try {
+            if (caseResult.getContext().containsKey("automation"))
+                return;
+            final CbTestContext ctx = CbTestContext.getInstance();
+            final Map<String, Object> info = AutomationInfoHelper.describe(ctx != null ? ctx.getAbstractWebDriver() : null);
+            if (info != null)
+                caseResult.getContext().put("automation", info);
+        }
+        catch (Throwable ignore) { }
     }
 
     private void reportCaseStatus(CaseResult startedCase, Optional<TestStatus> status, Throwable throwable) {
