@@ -9,7 +9,10 @@ import io.cloudbeat.common.client.dto.CaseStatusUpdateRequest;
 import io.cloudbeat.common.client.dto.RunStatusEnum;
 import io.cloudbeat.common.client.dto.SuiteStatusUpdateRequest;
 import io.cloudbeat.common.config.CbConfig;
+import io.cloudbeat.common.CbTestContext;
 import io.cloudbeat.common.helper.AttachmentHelper;
+import io.cloudbeat.common.helper.AutomationInfoHelper;
+import io.cloudbeat.common.wrapper.webdriver.AbstractWebDriver;
 import io.cloudbeat.common.model.runtime.NewInstanceOptions;
 import io.cloudbeat.common.model.runtime.NewRunOptions;
 import io.cloudbeat.common.reporter.model.*;
@@ -29,6 +32,8 @@ import java.util.function.Supplier;
 
 public class CbTestReporter {
     //private static final Logger LOGGER = LoggerFactory.getLogger(CbTestReporter.class);
+    /** The instance endInstance() ended, kept for reopenInstance(). */
+    private Instance endedInstance;
     private final static String TEST_RESULTS_FILENAME = ".CB_TEST_RESULTS.json";
     private final String language = "java";
 
@@ -178,7 +183,25 @@ public class CbTestReporter {
                     runtimeApi.get().endInstance(instance.getRunId(), instance.getId(), result);
             }
         } catch (CbClientException e) {}
+        endedInstance = instance;
         instance = null;
+    }
+
+    /**
+     * Continues the ended instance when the test framework starts another execution in the same JVM (e.g. Surefire /
+     * Failsafe re-running failed tests with rerunFailingTestsCount after the main run): its results are added to the
+     * same result and the results file is written again when it ends. Only for runs started by CloudBeat, where the
+     * runner reads the results file after the process exits; returns false when there is nothing to continue.
+     */
+    public synchronized boolean reopenInstance() {
+        if (instance != null)
+            return true;
+        if (endedInstance == null || result == null || !config.isRunningInCb())
+            return false;
+        instance = endedInstance;
+        endedInstance = null;
+        instance.setStatus(RunStatus.RUNNING);
+        return true;
     }
 
     public SuiteResult startSuite(final String name, final String fqn) {
@@ -241,8 +264,17 @@ public class CbTestReporter {
             else
                 return  null;
         }
-        CaseResult newCase = startedSuite.addNewCaseResult(name);
-        newCase.setFqn(fqn);
+        // the next attempt of a test the framework retries: continue the same result (see CaseResult.restartForRerun)
+        CaseResult retried = findRetriedCase(fqn);
+        CaseResult newCase;
+        if (retried != null) {
+            retried.restartForRerun();
+            newCase = retried;
+        }
+        else {
+            newCase = startedSuite.addNewCaseResult(name);
+            newCase.setFqn(fqn);
+        }
         // must be set before reportRuntimeCaseStatus below, which reads getDisplayName() - setting
         // it after startCase returns (as callers used to do) means the first "Running" status
         // ping always goes out with a null displayName, so the live status screen falls back to
@@ -255,6 +287,43 @@ public class CbTestReporter {
         reportRuntimeCaseStatus(newCase, startedSuite, RunStatusEnum.RUNNING);
 
         return newCase;
+    }
+
+    /** The newest case of the run with this FQN that was marked as retried, or null. */
+    private CaseResult findRetriedCase(final String fqn) {
+        if (fqn == null || result == null)
+            return null;
+        final List<SuiteResult> suites = result.getSuites();
+        for (int s = suites.size() - 1; s >= 0; s--) {
+            final List<CaseResult> cases = suites.get(s).getCases();
+            for (int c = cases.size() - 1; c >= 0; c--)
+                if (fqn.equals(cases.get(c).getFqn()) && cases.get(c).isRetried())
+                    return cases.get(c);
+        }
+        return null;
+    }
+
+    /**
+     * Marks the case as an attempt the test framework will run again: the next {@code startCase} with the same FQN
+     * continues this result instead of adding a new one.
+     */
+    public void markCaseRetried(final CaseResult caseResult) {
+        if (caseResult != null)
+            caseResult.markRetried();
+    }
+
+    /** Starts a suite, or continues the run's suite with the same FQN (a class started again, e.g. to re-run failed tests). */
+    public SuiteResult startOrResumeSuite(final String name, final String fqn) {
+        final SuiteResult existing = fqn == null ? null : result.getSuites().stream()
+                .filter(suiteResult -> fqn.equals(suiteResult.getFqn())).findFirst().orElse(null);
+        if (existing == null)
+            return startSuite(name, fqn);
+        lastCaseResult.remove();
+        startedStepsQueue.remove();
+        lastScreenshotOnException.remove();
+        lastSuiteResult.set(existing);
+        reportRuntimeSuiteStatus(existing, RunStatusEnum.RUNNING);
+        return existing;
     }
 
     public void endCase(final String caseFqn) {
@@ -302,12 +371,35 @@ public class CbTestReporter {
                     startedCase.addAttachment(screenshotAttachment);
                 lastScreenshotOnException.remove();
             }
+            addAutomationInfo(startedCase);
             startedCase.end(status, throwable);
             reportCaseStatus(startedCase, Optional.of(startedCase.getStatus()), throwable);
             reportRuntimeCaseStatus(startedCase, lastSuiteResult.get(), RunStatusEnum.FINISHED);
         }
 
         return startedCase;
+    }
+
+    /** Records which engine the test drove (Appium or Selenium, platform, device): context entry "automation". */
+    private void addAutomationInfo(CaseResult caseResult) {
+        final CbTestContext ctx = CbTestContext.getInstance();
+        addAutomationInfo(caseResult, ctx != null ? ctx.getAbstractWebDriver() : null);
+    }
+
+    /** Stamps the running test with this driver's engine (used when the driver quits before the test ends). */
+    public void addAutomationInfo(AbstractWebDriver driver) {
+        addAutomationInfo(lastCaseResult.get(), driver);
+    }
+
+    private void addAutomationInfo(CaseResult caseResult, AbstractWebDriver driver) {
+        try {
+            if (caseResult == null || caseResult.getStatus() != null || caseResult.getContext().containsKey("automation"))
+                return;
+            final Map<String, Object> info = AutomationInfoHelper.describe(driver);
+            if (info != null)
+                caseResult.getContext().put("automation", info);
+        }
+        catch (Throwable ignore) { }
     }
 
     private void reportCaseStatus(CaseResult startedCase, Optional<TestStatus> status, Throwable throwable) {

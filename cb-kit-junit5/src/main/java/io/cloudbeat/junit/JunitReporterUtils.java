@@ -18,7 +18,8 @@ public class JunitReporterUtils {
     final static SystemConsoleWrapper consoleWrapper = new SystemConsoleWrapper();
 
     public static  void startInstance(CbTestReporter reporter, boolean wrapSystemConsole) {
-        if (!reporter.getInstance().isPresent())
+        // a second JUnit execution in the same JVM (Surefire / Failsafe re-running failed tests) continues the run
+        if (!reporter.getInstance().isPresent() && !reporter.reopenInstance())
             reporter.startInstance();
         if (wrapSystemConsole)
             consoleWrapper.start(reporter);
@@ -32,7 +33,9 @@ public class JunitReporterUtils {
     public static void startSuite(CbTestReporter reporter, ExtensionContext context) {
         final String classFqn = context.getTestClass().get().getName();
         final String classDisplayName = context.getTestClass().get().getSimpleName();
-        reporter.startSuite(classDisplayName, classFqn);
+        // a class can start again in the same run, e.g. Surefire / Failsafe re-running failed tests
+        // (rerunFailingTestsCount): continue its suite instead of adding a second one
+        reporter.startOrResumeSuite(classDisplayName, classFqn);
         System.out.println("startSuite: " + context.getTestClass().get().getName());
     }
 
@@ -43,10 +46,19 @@ public class JunitReporterUtils {
         caseResultByUniqueId.get().clear();
     }
 
+    /**
+     * Failed tests by JUnit unique id, for the whole run (not cleared per suite): when the same test (the same unique
+     * id, so not just another invocation of a parameterized test) runs again, it is a re-run of that failure.
+     */
+    private static final java.util.Map<String, CaseResult> failedCaseByUniqueId = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static CaseResult startOrGetCase(CbTestReporter reporter, ExtensionContext context) throws Exception {
         String uniqueId = context.getUniqueId();
         if (caseResultByUniqueId.get().containsKey(uniqueId))
             return caseResultByUniqueId.get().get(uniqueId);
+        final CaseResult failedBefore = failedCaseByUniqueId.remove(uniqueId);
+        if (failedBefore != null)
+            reporter.markCaseRetried(failedBefore);
         final String classFqn = context.getTestClass().get().getName();
         final String methodName = context.getTestMethod().get().getName();
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
@@ -66,12 +78,34 @@ public class JunitReporterUtils {
         final String methodFqn = String.format(JAVA_METHOD_FQN_FORMAT, classFqn, methodName);
         */
         //CbTestReporter reporter = CbTestContext.getReporter();
-        if (context.getExecutionException().isPresent())
-            reporter.endCase(startedCase, TestStatus.FAILED, context.getExecutionException().get());
+        if (context.getExecutionException().isPresent()) {
+            final Throwable failure = context.getExecutionException().get();
+            if (isPioneerRetry(context, failure)) {
+                // a failed attempt junit-pioneer will retry: the next invocation continues this result
+                reporter.endCase(startedCase, TestStatus.FAILED, failure);
+                reporter.markCaseRetried(startedCase);
+                return;
+            }
+            reporter.endCase(startedCase, TestStatus.FAILED, failure);
+            failedCaseByUniqueId.put(uniqueId, startedCase);
+        }
             // reporter.failCase(methodFqn, context.getExecutionException().get());
         else
             // reporter.endCase(methodFqn);
             reporter.endCase(startedCase, null, null);
+    }
+
+    /**
+     * junit-pioneer's @RetryingTest aborts (TestAbortedException) every failed attempt it will retry; the last
+     * attempt fails normally. Read by name: the kit does not depend on junit-pioneer.
+     */
+    static boolean isPioneerRetry(ExtensionContext context, Throwable failure) {
+        if (failure == null || !"org.opentest4j.TestAbortedException".equals(failure.getClass().getName()))
+            return false;
+        return context.getTestMethod()
+                .map(m -> java.util.Arrays.stream(m.getAnnotations())
+                        .anyMatch(a -> "org.junitpioneer.jupiter.RetryingTest".equals(a.annotationType().getName())))
+                .orElse(false);
     }
 
     public static void disabledCase(CbTestReporter reporter, ExtensionContext context, Optional<String> reason) throws Exception {

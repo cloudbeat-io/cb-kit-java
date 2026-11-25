@@ -27,4 +27,6 @@ public interface AbstractWebDriver {
     public HarLog getHarLog();
     public String getScreenshot();
     public String getPageSource();
+    /** Whether the wrapped driver is an Appium driver (AppiumDriver, IOSDriver, AndroidDriver…). */
+    default boolean isAppiumDriver() { return false; }
 }

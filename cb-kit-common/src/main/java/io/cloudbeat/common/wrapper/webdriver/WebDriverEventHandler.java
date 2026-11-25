@@ -69,6 +69,23 @@ public class WebDriverEventHandler {
                 && caps.get(CAP_CHROME_LOGGING_PREFS) != null;
     }
     
+    /**
+     * The driver is about to quit: record its engine on the running test now (its capabilities are still known),
+     * then forget it, so later tests of this thread that use no driver are not stamped with it.
+     */
+    public void beforeQuit() {
+        try { reporter.addAutomationInfo(wrapper); } catch (Throwable ignore) { }
+    }
+
+    public void afterQuit() {
+        try {
+            final io.cloudbeat.common.CbTestContext ctx = io.cloudbeat.common.CbTestContext.getInstance();
+            if (ctx != null)
+                ctx.forgetAbstractWebDriver(wrapper);
+        }
+        catch (Throwable ignore) { }
+    }
+
     public void beforeAlertAccept() {
         final StepResult step = reporter.startStep("Accept alert");
         lastStepId = step != null ? step.getId() : null;

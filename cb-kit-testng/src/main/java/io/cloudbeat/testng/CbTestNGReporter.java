@@ -147,6 +147,13 @@ public final class CbTestNGReporter {
         final ITestNGMethod testMethod = testResult.getMethod();
         final String methodDisplayName = testMethod.getMethodName();
         final String methodFqn = fixFqnWithHash(testMethod.getQualifiedName());
+        // a failed attempt TestNG's retry analyzer runs again is reported as skipped: keep it as the failed attempt
+        // and let the next attempt continue the same result (reRunCount), instead of a separate skipped test
+        if (isRetriedAttempt(testResult)) {
+            final CaseResult attempt = reporter.endCase(methodFqn, TestStatus.FAILED, testResult.getThrowable());
+            reporter.markCaseRetried(attempt != null ? attempt : reporter.getStartedCase());
+            return;
+        }
         final String suiteFqn = generateFqnForSuite(testResult.getTestContext().getSuite().getXmlSuite());
         // reporter.startCase(methodDisplayName, methodFqn);
         reporter.skipCase(methodFqn);
@@ -161,6 +168,33 @@ public final class CbTestNGReporter {
     }
 
     // Helpers
+
+    /**
+     * Whether this result is a failed attempt TestNG will run again. TestNG 7 says so (ITestResult.wasRetried(),
+     * read by reflection: the kit builds against TestNG 6); TestNG 6 reports it as skipped while it still carries
+     * the failure, for a method that has a retry analyzer.
+     */
+    static boolean isRetriedAttempt(ITestResult testResult) {
+        try {
+            final java.lang.reflect.Method wasRetried = testResult.getClass().getMethod("wasRetried");
+            return Boolean.TRUE.equals(wasRetried.invoke(testResult));
+        }
+        catch (NoSuchMethodException e) {
+            try {
+                final Throwable failure = testResult.getThrowable();
+                return testResult.getStatus() == ITestResult.SKIP
+                        && failure != null && !(failure instanceof org.testng.SkipException)
+                        && testResult.getMethod().getRetryAnalyzer() != null;
+            }
+            catch (Throwable ignore) {
+                return false;
+            }
+        }
+        catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     private static String fixFqnWithHash(final String fqn) {
         int lastDotIndex = fqn.lastIndexOf('.');
         if (lastDotIndex < 1)

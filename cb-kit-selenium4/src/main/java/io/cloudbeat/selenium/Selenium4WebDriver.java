@@ -58,6 +58,15 @@ public class Selenium4WebDriver implements AbstractWebDriver {
 
     @Override
     public boolean hasDevTools() { return devTools != null; }
+
+    @Override
+    public boolean isAppiumDriver() {
+        // the kit does not depend on the Appium client: look at the driver's class hierarchy
+        for (Class<?> c = driver != null ? driver.getClass() : null; c != null; c = c.getSuperclass())
+            if (c.getName().startsWith("io.appium."))
+                return true;
+        return false;
+    }
     @Override
     public boolean isChromeDriverInstance() {
         return driver != null && driver instanceof ChromeDriver;
