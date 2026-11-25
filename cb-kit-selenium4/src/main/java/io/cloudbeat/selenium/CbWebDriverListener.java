@@ -90,11 +90,13 @@ public class CbWebDriverListener implements WebDriverListener {
     @Override
     public void beforeQuit(WebDriver driver) {
         WebDriverListener.super.beforeQuit(driver);
+        eventHandler.beforeQuit();
     }
 
     @Override
     public void afterQuit(WebDriver driver) {
         WebDriverListener.super.afterQuit(driver);
+        eventHandler.afterQuit();
     }
 
     @Override

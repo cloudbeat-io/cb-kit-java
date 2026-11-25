@@ -32,11 +32,44 @@ public class CaseResult implements IResultWithAttachment {
     final ArrayList<Attachment> attachments = new ArrayList<>();
     final Map<String, Object> testAttributes = new HashMap<>();
     final Map<String, Object> context = new HashMap<>();
+    /** How many times the test was re-run before this (last) attempt; null = not re-run. */
+    @Nullable
+    Integer reRunCount;
+    /** This attempt failed and the test framework will run the test again (TestNG retry, JUnit re-run). */
+    transient boolean retried;
 
     public CaseResult(String name) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.startTime = Calendar.getInstance().getTimeInMillis();
+    }
+
+    @Nullable
+    public Integer getReRunCount() { return reRunCount; }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isRetried() { return retried; }
+
+    /** Marks this attempt as one the test framework is about to run again (see {@link #restartForRerun()}). */
+    public void markRetried() { this.retried = true; }
+
+    /**
+     * The next attempt of a retried test: the result keeps only the last attempt, plus how many re-runs it took,
+     * so a test that passes on a re-run is reported once, as passed (CloudBeat counts it as flaky).
+     */
+    public void restartForRerun() {
+        this.reRunCount = reRunCount == null ? 1 : reRunCount + 1;
+        this.retried = false;
+        this.status = null;
+        this.failure = null;
+        this.endTime = null;
+        this.duration = null;
+        this.startTime = Calendar.getInstance().getTimeInMillis();
+        hooks.clear();
+        steps.clear();
+        logs.clear();
+        attachments.clear();
+        context.clear();
     }
 
     public void end() {

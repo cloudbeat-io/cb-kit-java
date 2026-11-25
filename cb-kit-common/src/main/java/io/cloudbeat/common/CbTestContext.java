@@ -202,4 +202,10 @@ public class CbTestContext {
     public AbstractWebDriver getAbstractWebDriver() {
         return currentAbstractWebDriver.get();
     }
+
+    /** Forgets this thread's wrapped driver if it is the given one (it quit). */
+    public void forgetAbstractWebDriver(AbstractWebDriver driver) {
+        if (driver != null && currentAbstractWebDriver.get() == driver)
+            currentAbstractWebDriver.remove();
+    }
 }
